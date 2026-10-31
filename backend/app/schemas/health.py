@@ -10,3 +10,4 @@ class HealthResponse(BaseModel):
     version: str = Field(..., description="API service version")
     environment: str = Field(..., description="Deployment environment")
     timestamp: datetime = Field(..., description="Current server UTC timestamp")
+

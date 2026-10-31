@@ -5,11 +5,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import async_session_maker, engine
 from app.main import app
+from app.services.seed_service import SeedService
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
-async def cleanup_engine():
-    """Ensure engine is cleanly disposed when the test session ends."""
+async def setup_test_database():
+    """Ensure database is seeded with prepared demonstration scenarios and knowledge documents."""
+    async with async_session_maker() as session:
+        await SeedService.seed_all_if_needed(session)
     yield
     await engine.dispose()
 

@@ -5,7 +5,8 @@ from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import logger, setup_logging
-from app.db.session import check_db_connection, engine
+from app.db.session import async_session_maker, check_db_connection, engine
+from app.services.seed_service import SeedService
 
 
 @asynccontextmanager
@@ -14,10 +15,17 @@ async def lifespan(_: FastAPI):
     setup_logging()
     logger.info("Starting up %s (v%s) in '%s' mode...", settings.PROJECT_NAME, settings.VERSION, settings.APP_ENV)
 
-    # Verify database connectivity on startup
+    # Verify database connectivity and seed prepared demonstration data
     db_ok = await check_db_connection()
     if db_ok:
         logger.info("PostgreSQL database connection established successfully.")
+        try:
+            async with async_session_maker() as session:
+                seed_res = await SeedService.seed_all_if_needed(session)
+                if seed_res["seeded_scenarios"] > 0 or seed_res["seeded_knowledge"] > 0:
+                    logger.info("Auto-seeded demonstration data: %s", seed_res)
+        except Exception as seed_err:
+            logger.warning("Auto-seeding encountered non-fatal error: %s", str(seed_err))
     else:
         logger.warning("PostgreSQL database connection could not be established during startup.")
 

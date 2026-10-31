@@ -1,5 +1,7 @@
+import uuid
 from typing import Any, Dict, Optional
-from sqlalchemy import JSON, ForeignKey, String, Text
+from sqlalchemy import ForeignKey, String, Text, UUID
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, TimestampMixin
 
@@ -9,15 +11,20 @@ class Analysis(Base, TimestampMixin):
 
     __tablename__ = "analyses"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    scenario_id: Mapped[int] = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    scenario_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
         ForeignKey("scenarios.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     tactical_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     pressing_intensity: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    metrics: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    metrics: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, nullable=True)
     status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False, index=True)
 
     # Relationships

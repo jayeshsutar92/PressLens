@@ -24,3 +24,4 @@ class ErrorEnvelope(BaseModel):
 
     success: bool = Field(False, description="Always false for error responses")
     error: ErrorDetails = Field(..., description="Error details object")
+
