@@ -77,3 +77,4 @@ class ScenarioService:
     async def count_scenarios(db: AsyncSession) -> int:
         result = await db.execute(select(func.count(Scenario.id)))
         return result.scalar() or 0
+

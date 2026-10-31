@@ -105,3 +105,4 @@ async def test_create_custom_knowledge_document(async_client: AsyncClient):
     assert created_doc["title"] == payload["title"]
     assert created_doc["topic"] == "half_space_defense"
     assert "id" in created_doc
+

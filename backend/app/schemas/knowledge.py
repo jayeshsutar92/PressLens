@@ -66,3 +66,4 @@ class TopicSummaryResponse(BaseModel):
     category: str
     document_count: int
     description: str
+

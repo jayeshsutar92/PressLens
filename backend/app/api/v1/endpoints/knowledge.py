@@ -98,3 +98,4 @@ async def create_knowledge_document(
     db: AsyncSession = Depends(get_db),
 ):
     return await KnowledgeService.create_knowledge_document(db=db, doc_in=doc_in)
+

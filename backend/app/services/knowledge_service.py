@@ -136,3 +136,4 @@ class KnowledgeService:
     async def count_documents(db: AsyncSession) -> int:
         result = await db.execute(select(func.count(KnowledgeDocument.id)))
         return result.scalar() or 0
+

@@ -76,3 +76,4 @@ async def delete_scenario(
 ):
     await ScenarioService.delete_scenario(db=db, scenario_id=scenario_id)
     return None
+

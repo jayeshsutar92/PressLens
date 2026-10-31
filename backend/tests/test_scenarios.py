@@ -106,3 +106,4 @@ async def test_create_and_delete_custom_scenario(async_client: AsyncClient):
     # Confirm deletion
     get_after_del = await async_client.get(f"/api/v1/scenarios/{created_id}")
     assert get_after_del.status_code == 404
+
