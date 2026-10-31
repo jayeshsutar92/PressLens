@@ -58,6 +58,29 @@ class BadRequestError(AppException):
         )
 
 
+class AIProviderError(AppException):
+    """Raised when Groq or an external AI model service fails, times out, or rate limits."""
+
+    def __init__(self, message: str, status_code: int = status.HTTP_502_BAD_GATEWAY, details: Optional[Any] = None):
+        super().__init__(
+            message=message,
+            status_code=status_code,
+            code="AI_PROVIDER_ERROR",
+            details=details,
+        )
+
+
+class ConfigurationError(AppException):
+    """Raised when a required environment variable or integration key is missing."""
+
+    def __init__(self, message: str):
+        super().__init__(
+            message=message,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            code="CONFIGURATION_ERROR",
+        )
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     """Registers standard exception handlers with the FastAPI application."""
 
@@ -117,4 +140,3 @@ def register_exception_handlers(app: FastAPI) -> None:
                 },
             },
         )
-

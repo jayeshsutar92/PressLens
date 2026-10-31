@@ -1,8 +1,11 @@
 from typing import Any, Dict, List
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.logging import logger
+from app.models.knowledge_chunk import KnowledgeChunk
 from app.models.knowledge_document import KnowledgeDocument
 from app.models.scenario import Scenario
+from app.services.embedding_service import EmbeddingService
 from app.services.knowledge_service import KnowledgeService
 from app.services.scenario_service import ScenarioService
 
@@ -367,7 +370,7 @@ Rest-Defense Configurations:
 
 
 class SeedService:
-    """Service to automatically seed prepared scenarios and curated tactical knowledge if database is empty."""
+    """Service to automatically seed prepared scenarios, curated knowledge, and vector embeddings."""
 
     @staticmethod
     async def seed_all_if_needed(db: AsyncSession) -> Dict[str, int]:
@@ -376,6 +379,7 @@ class SeedService:
 
         seeded_scenarios = 0
         seeded_knowledge = 0
+        seeded_chunks = 0
 
         # Seed scenarios if none exist
         if scenario_count == 0:
@@ -396,10 +400,14 @@ class SeedService:
                 db.add(scenario)
                 seeded_scenarios += 1
 
-        # Seed knowledge if none exist
+        # Seed knowledge documents & chunks if none exist
         if knowledge_count == 0:
-            logger.info("Seeding %d curated tactical knowledge documents...", len(PREPARED_KNOWLEDGE_DOCUMENTS))
+            logger.info("Seeding %d curated tactical knowledge documents with embeddings...", len(PREPARED_KNOWLEDGE_DOCUMENTS))
             for kd_data in PREPARED_KNOWLEDGE_DOCUMENTS:
+                # 1. Generate document-level embedding
+                doc_text = f"{kd_data['title']}\n{kd_data['summary']}\n{kd_data['content']}"
+                doc_embedding = EmbeddingService.generate_embedding(doc_text)
+
                 doc = KnowledgeDocument(
                     title=kd_data["title"],
                     topic=kd_data["topic"],
@@ -409,20 +417,49 @@ class SeedService:
                     tactical_principles=kd_data["tactical_principles"],
                     source_metadata=kd_data["source_metadata"],
                     tags=kd_data["tags"],
+                    embedding=doc_embedding,
                 )
                 db.add(doc)
+                await db.flush()
                 seeded_knowledge += 1
 
-        if seeded_scenarios > 0 or seeded_knowledge > 0:
+                # 2. Generate chunks and chunk embeddings
+                chunks_text = EmbeddingService.chunk_document_content(
+                    title=kd_data["title"],
+                    topic=kd_data["topic"],
+                    summary=kd_data["summary"],
+                    content=kd_data["content"],
+                    tactical_principles=kd_data["tactical_principles"],
+                )
+                chunk_embeddings = EmbeddingService.generate_embeddings(chunks_text)
+
+                for idx, (c_text, c_emb) in enumerate(zip(chunks_text, chunk_embeddings)):
+                    chunk = KnowledgeChunk(
+                        document_id=doc.id,
+                        chunk_index=idx,
+                        content=c_text,
+                        embedding=c_emb,
+                        chunk_metadata={
+                            "topic": kd_data["topic"],
+                            "category": kd_data["category"],
+                            "source_title": kd_data["title"],
+                            "author": kd_data["source_metadata"].get("author"),
+                        },
+                    )
+                    db.add(chunk)
+                    seeded_chunks += 1
+
+        if seeded_scenarios > 0 or seeded_knowledge > 0 or seeded_chunks > 0:
             await db.commit()
             logger.info(
-                "Database seed complete: %d scenarios, %d knowledge documents.",
+                "Database seed complete: %d scenarios, %d knowledge documents, %d vector chunks.",
                 seeded_scenarios,
                 seeded_knowledge,
+                seeded_chunks,
             )
 
         return {
             "seeded_scenarios": seeded_scenarios,
             "seeded_knowledge": seeded_knowledge,
+            "seeded_chunks": seeded_chunks,
         }
-

@@ -1,9 +1,12 @@
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 import uuid
-from typing import Any, Dict, List
-from sqlalchemy import String, Text, UUID
+from sqlalchemy import ARRAY, Float, String, Text, UUID
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.knowledge_chunk import KnowledgeChunk
 
 
 class KnowledgeDocument(Base, TimestampMixin):
@@ -24,6 +27,17 @@ class KnowledgeDocument(Base, TimestampMixin):
     tactical_principles: Mapped[List[str]] = mapped_column(JSONB, nullable=False, default=list)
     source_metadata: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)
     tags: Mapped[List[str]] = mapped_column(JSONB, nullable=False, default=list)
+
+    # Document-level dense embedding (dimension 384)
+    embedding: Mapped[Optional[List[float]]] = mapped_column(ARRAY(Float), nullable=True)
+
+    # Granular chunks for fine-grained RAG retrieval
+    chunks: Mapped[List["KnowledgeChunk"]] = relationship(
+        "KnowledgeChunk",
+        back_populates="document",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
 
     def __repr__(self) -> str:
         return f"<KnowledgeDocument(id={self.id}, title='{self.title}', topic='{self.topic}')>"

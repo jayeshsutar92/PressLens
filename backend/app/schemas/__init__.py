@@ -6,6 +6,11 @@ from app.schemas.knowledge import (
     SourceMetadata,
     TopicSummaryResponse,
 )
+from app.schemas.rag import (
+    SourceCitation,
+    TacticalRAGRequest,
+    TacticalRAGResponse,
+)
 from app.schemas.scenario import (
     BallPosition,
     MatchContext,
@@ -34,4 +39,7 @@ __all__ = [
     "KnowledgeDocumentCreate",
     "KnowledgeDocumentResponse",
     "TopicSummaryResponse",
+    "SourceCitation",
+    "TacticalRAGRequest",
+    "TacticalRAGResponse",
 ]

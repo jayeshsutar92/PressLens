@@ -1,10 +1,13 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 import uuid
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.config import settings
 from app.core.exceptions import EntityNotFoundError
+from app.models.knowledge_chunk import KnowledgeChunk
 from app.models.knowledge_document import KnowledgeDocument
 from app.schemas.knowledge import KnowledgeDocumentCreate, TopicSummaryResponse
+from app.services.embedding_service import EmbeddingService
 
 # Human-friendly descriptions for primary tactical topics
 TOPIC_DESCRIPTIONS: Dict[str, str] = {
@@ -20,7 +23,7 @@ TOPIC_DESCRIPTIONS: Dict[str, str] = {
 
 
 class KnowledgeService:
-    """Service handling curated football tactical knowledge queries and keyword search."""
+    """Service handling curated football tactical knowledge queries, chunking, and vector search."""
 
     @staticmethod
     async def get_knowledge_documents(
@@ -58,6 +61,10 @@ class KnowledgeService:
         db: AsyncSession,
         doc_in: KnowledgeDocumentCreate,
     ) -> KnowledgeDocument:
+        # Generate document-level embedding
+        doc_text = f"{doc_in.title}\n{doc_in.summary}\n{doc_in.content}"
+        doc_embedding = EmbeddingService.generate_embedding(doc_text)
+
         doc = KnowledgeDocument(
             title=doc_in.title,
             topic=doc_in.topic,
@@ -67,8 +74,36 @@ class KnowledgeService:
             tactical_principles=doc_in.tactical_principles,
             source_metadata=doc_in.source_metadata.model_dump(),
             tags=doc_in.tags,
+            embedding=doc_embedding,
         )
         db.add(doc)
+        await db.flush()
+
+        # Generate and store fine-grained chunks for RAG
+        chunks_text = EmbeddingService.chunk_document_content(
+            title=doc_in.title,
+            topic=doc_in.topic,
+            summary=doc_in.summary,
+            content=doc_in.content,
+            tactical_principles=doc_in.tactical_principles,
+        )
+        chunk_embeddings = EmbeddingService.generate_embeddings(chunks_text)
+
+        for idx, (c_text, c_emb) in enumerate(zip(chunks_text, chunk_embeddings)):
+            chunk = KnowledgeChunk(
+                document_id=doc.id,
+                chunk_index=idx,
+                content=c_text,
+                embedding=c_emb,
+                chunk_metadata={
+                    "topic": doc_in.topic,
+                    "category": doc_in.category,
+                    "source_title": doc_in.title,
+                    "author": doc_in.source_metadata.author,
+                },
+            )
+            db.add(chunk)
+
         await db.flush()
         await db.refresh(doc)
         return doc
@@ -83,7 +118,6 @@ class KnowledgeService:
     ) -> List[KnowledgeDocument]:
         search_term = f"%{query_str.lower().strip()}%"
 
-        # Search across title, summary, content, category, or topic
         criteria = or_(
             func.lower(KnowledgeDocument.title).like(search_term),
             func.lower(KnowledgeDocument.summary).like(search_term),
@@ -99,6 +133,36 @@ class KnowledgeService:
         query = query.order_by(KnowledgeDocument.title.asc()).offset(skip).limit(limit)
         result = await db.execute(query)
         return list(result.scalars().all())
+
+    @staticmethod
+    async def semantic_search_chunks(
+        db: AsyncSession,
+        query_text: str,
+        topic: Optional[str] = None,
+        top_k: int = 4,
+        min_similarity: float = 0.30,
+    ) -> List[Tuple[KnowledgeChunk, float]]:
+        """Performs semantic similarity search against knowledge chunks in PostgreSQL."""
+        query_vector = EmbeddingService.generate_embedding(query_text)
+
+        query = select(KnowledgeChunk).join(KnowledgeDocument)
+        if topic:
+            query = query.where(KnowledgeDocument.topic == topic)
+
+        result = await db.execute(query)
+        all_chunks = list(result.scalars().all())
+
+        # Rank chunks using cosine similarity
+        scored_chunks: List[Tuple[KnowledgeChunk, float]] = []
+        for chunk in all_chunks:
+            if chunk.embedding:
+                score = EmbeddingService.cosine_similarity(query_vector, chunk.embedding)
+                if score >= min_similarity:
+                    scored_chunks.append((chunk, score))
+
+        # Sort descending by similarity score
+        scored_chunks.sort(key=lambda x: x[1], reverse=True)
+        return scored_chunks[:top_k]
 
     @staticmethod
     async def get_topics_summary(db: AsyncSession) -> List[TopicSummaryResponse]:
@@ -137,3 +201,7 @@ class KnowledgeService:
         result = await db.execute(select(func.count(KnowledgeDocument.id)))
         return result.scalar() or 0
 
+    @staticmethod
+    async def count_chunks(db: AsyncSession) -> int:
+        result = await db.execute(select(func.count(KnowledgeChunk.id)))
+        return result.scalar() or 0

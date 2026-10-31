@@ -13,7 +13,9 @@ async def test_list_scenarios_returns_prepared_scenarios(async_client: AsyncClie
     assert len(scenarios) >= 3
 
     # Check structure of items
-    first = scenarios[0]
+    prepared = [s for s in scenarios if s.get("is_prepared") is True]
+    assert len(prepared) >= 3
+    first = prepared[0]
     assert "id" in first
     assert "title" in first
     assert "match_phase" in first
