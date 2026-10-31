@@ -1,0 +1,9 @@
+AGENTS.md
+GEMINI.md
+.agents/
+.skills/
+.pgdata/
+*.log
+.env
+*.env
+.venv/
