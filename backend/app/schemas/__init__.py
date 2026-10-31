@@ -1,3 +1,22 @@
+from app.schemas.analysis import (
+    AnalysisCreateRequest,
+    AnalysisDetailResponse,
+    AnalysisFollowUpRequest,
+    AnalysisFollowUpResponse,
+    AnalysisResponse,
+    AnalysisStatusResponse,
+    ConfidenceAndLimitations,
+    ConversationMessageSchema,
+    ExposedSpaces,
+    FanWatchPoints,
+    FullTacticalAnalysisReport,
+    OppositionResponses,
+    PassingLaneCoverage,
+    PressingStrategy,
+    PressingTriggers,
+    SituationOverview,
+    TacticalAdvantages,
+)
 from app.schemas.common import ErrorDetails, ErrorEnvelope, ResponseEnvelope
 from app.schemas.health import HealthResponse
 from app.schemas.knowledge import (
@@ -42,4 +61,22 @@ __all__ = [
     "SourceCitation",
     "TacticalRAGRequest",
     "TacticalRAGResponse",
+    "SituationOverview",
+    "PressingStrategy",
+    "PressingTriggers",
+    "PassingLaneCoverage",
+    "TacticalAdvantages",
+    "ExposedSpaces",
+    "OppositionResponses",
+    "FanWatchPoints",
+    "ConfidenceAndLimitations",
+    "FullTacticalAnalysisReport",
+    "AnalysisCreateRequest",
+    "AnalysisResponse",
+    "AnalysisDetailResponse",
+    "AnalysisStatusResponse",
+    "AnalysisFollowUpRequest",
+    "AnalysisFollowUpResponse",
+    "ConversationMessageSchema",
 ]
+

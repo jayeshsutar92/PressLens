@@ -117,3 +117,4 @@ class EmbeddingService:
             chunks.append(f"{title} ({topic}):\n{p}")
 
         return chunks
+

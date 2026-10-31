@@ -1,3 +1,4 @@
+from app.services.analysis_service import AnalysisService
 from app.services.embedding_service import EmbeddingService
 from app.services.knowledge_service import KnowledgeService
 from app.services.rag_service import RAGService
@@ -10,4 +11,6 @@ __all__ = [
     "SeedService",
     "EmbeddingService",
     "RAGService",
+    "AnalysisService",
 ]
+

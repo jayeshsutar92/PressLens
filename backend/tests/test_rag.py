@@ -211,3 +211,4 @@ async def test_tactical_rag_api_endpoint(async_client: AsyncClient):
     assert len(data["sources_cited"]) > 0
     assert data["retrieved_chunks_count"] >= 1
     assert data["confidence_score"] > 0.0
+

@@ -147,10 +147,24 @@ class KnowledgeService:
 
         query = select(KnowledgeChunk).join(KnowledgeDocument)
         if topic:
-            query = query.where(KnowledgeDocument.topic == topic)
+            # Match exact topic or substring (e.g. 'high_press' matches 'high_pressing')
+            topic_clean = topic.rstrip("_")
+            query = query.where(
+                or_(
+                    KnowledgeDocument.topic == topic,
+                    KnowledgeDocument.topic == f"{topic}ing",
+                    KnowledgeDocument.topic.ilike(f"%{topic_clean}%"),
+                )
+            )
 
         result = await db.execute(query)
         all_chunks = list(result.scalars().all())
+
+        # If strict topic filter yielded no chunks, search across all documents
+        if not all_chunks and topic:
+            fallback_query = select(KnowledgeChunk).join(KnowledgeDocument)
+            res_fb = await db.execute(fallback_query)
+            all_chunks = list(res_fb.scalars().all())
 
         # Rank chunks using cosine similarity
         scored_chunks: List[Tuple[KnowledgeChunk, float]] = []

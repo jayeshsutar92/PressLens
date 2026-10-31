@@ -34,3 +34,4 @@ class TacticalRAGResponse(BaseModel):
     sources_cited: List[SourceCitation] = Field(default_factory=list, description="Curated literature citations")
     retrieved_chunks_count: int = Field(..., description="Number of knowledge chunks retrieved for context")
     confidence_score: float = Field(..., ge=0.0, le=1.0, description="Confidence in the tactical grounding")
+

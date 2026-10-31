@@ -35,3 +35,4 @@ class KnowledgeChunk(Base, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"<KnowledgeChunk(id={self.id}, doc_id={self.document_id}, index={self.chunk_index})>"
+

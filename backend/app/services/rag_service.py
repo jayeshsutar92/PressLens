@@ -215,3 +215,4 @@ class RAGService:
             retrieved_chunks_count=len(retrieved_chunks),
             confidence_score=confidence,
         )
+

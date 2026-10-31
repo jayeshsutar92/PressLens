@@ -130,3 +130,4 @@ class GroqClient:
         except ValidationError as val_err:
             logger.error("Groq JSON failed schema validation: %s", str(val_err))
             raise AIProviderError(f"Groq response did not adhere to expected schema: {str(val_err)}")
+
