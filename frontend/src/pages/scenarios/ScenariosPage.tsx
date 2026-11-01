@@ -97,7 +97,7 @@ export const ScenariosPage: FC = () => {
           }}
         >
           {scenarios.map((scenario) => (
-            <Card key={scenario.id} interactive onClick={() => navigate(`/analysis?scenario_id=${scenario.id}`)}>
+            <Card key={scenario.id} interactive onClick={() => navigate(`/scenarios/${scenario.id}`)}>
               <CardHeader>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
@@ -120,15 +120,15 @@ export const ScenariosPage: FC = () => {
               <CardFooter>
                 <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Status: Active</span>
                 <Button
-                  variant="outline"
+                  variant="primary"
                   size="sm"
                   icon={<Zap size={14} />}
                   onClick={(e) => {
                     e.stopPropagation()
-                    navigate(`/analysis?scenario_id=${scenario.id}`)
+                    navigate(`/scenarios/${scenario.id}`)
                   }}
                 >
-                  Analyze
+                  Inspect Pitch
                 </Button>
               </CardFooter>
             </Card>
@@ -151,3 +151,4 @@ export const ScenariosPage: FC = () => {
     </div>
   )
 }
+

@@ -7,6 +7,7 @@ import {
   HistoryPage,
   NotFoundPage,
   ScenarioBuilderPage,
+  ScenarioDetailPage,
   ScenariosPage,
 } from '../pages/index.ts'
 
@@ -22,6 +23,10 @@ export const router = createBrowserRouter([
       {
         path: 'scenarios',
         element: <ScenariosPage />,
+      },
+      {
+        path: 'scenarios/:id',
+        element: <ScenarioDetailPage />,
       },
       {
         path: 'scenarios/builder',
@@ -46,3 +51,4 @@ export const router = createBrowserRouter([
     ],
   },
 ])
+

@@ -219,31 +219,44 @@ export const DashboardPage: FC = () => {
             ) : scenarios && scenarios.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {scenarios.slice(0, 3).map((scenario) => (
-                  <div
+                  <Link
                     key={scenario.id}
-                    style={{
-                      padding: '14px 16px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'var(--bg-elevated)',
-                      border: '1px solid var(--border-subtle)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '12px',
-                    }}
+                    to={`/scenarios/${scenario.id}`}
+                    style={{ textDecoration: 'none' }}
                   >
-                    <div>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                        {scenario.title}
+                    <div
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: 'var(--bg-elevated)',
+                        border: '1px solid var(--border-subtle)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                        transition: 'border-color var(--transition-fast)',
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--color-pitch)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--border-subtle)'
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                          {scenario.title}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          {scenario.tactical_situation}
+                        </div>
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                        {scenario.tactical_situation}
-                      </div>
+                      <Badge variant="pitch">
+                        {scenario.match_phase.replace('_', ' ')}
+                      </Badge>
                     </div>
-                    <Badge variant="pitch">
-                      {scenario.match_phase.replace('_', ' ')}
-                    </Badge>
-                  </div>
+                  </Link>
                 ))}
               </div>
             ) : (
@@ -326,3 +339,4 @@ export const DashboardPage: FC = () => {
     </div>
   )
 }
+
