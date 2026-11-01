@@ -27,6 +27,9 @@ export const getBaseUrl = (): string => {
   if (envUrl && envUrl.trim().length > 0) {
     return envUrl.trim().replace(/\/+$/, '')
   }
+  if (typeof window !== 'undefined' && window.location.hostname === '127.0.0.1') {
+    return 'http://127.0.0.1:8000/api/v1'
+  }
   return DEFAULT_BASE_URL
 }
 

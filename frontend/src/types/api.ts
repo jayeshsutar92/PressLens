@@ -23,12 +23,17 @@ export interface ApiError {
 }
 
 export interface HealthStatus {
-  status: 'ok' | 'degraded' | 'error'
-  app_name: string
+  status: 'healthy' | 'ok' | 'degraded' | 'error' | string
   version: string
   environment: string
-  database: {
-    status: 'connected' | 'disconnected'
-    dialect?: string
-  }
+  database:
+    | 'connected'
+    | 'disconnected'
+    | string
+    | {
+        status: 'connected' | 'disconnected'
+        dialect?: string
+      }
+  timestamp?: string
+  app_name?: string
 }

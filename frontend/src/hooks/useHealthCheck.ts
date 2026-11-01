@@ -21,7 +21,7 @@ export function useHealthCheck(pollIntervalMs = 30000): HealthCheckResult {
     try {
       const res = await healthService.checkHealth()
       setHealth(res)
-      setIsHealthy(res.status === 'ok')
+      setIsHealthy(res.status === 'healthy' || res.status === 'ok')
       setLastChecked(new Date())
     } catch {
       setIsHealthy(false)
@@ -40,7 +40,7 @@ export function useHealthCheck(pollIntervalMs = 30000): HealthCheckResult {
         const res = await healthService.checkHealth()
         if (isMounted) {
           setHealth(res)
-          setIsHealthy(res.status === 'ok')
+          setIsHealthy(res.status === 'healthy' || res.status === 'ok')
           setIsChecking(false)
           setLastChecked(new Date())
         }
