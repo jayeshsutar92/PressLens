@@ -126,6 +126,11 @@ export const ScenarioDetailPage: FC = () => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Link to={`/analysis?scenario_id=${scenario.id}`}>
+            <Button variant="primary" size="sm" icon={<Zap size={14} />}>
+              Analyze with AI
+            </Button>
+          </Link>
           {!scenario.is_prepared && (
             <Button
               variant="danger"

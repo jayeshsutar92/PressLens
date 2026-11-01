@@ -1,6 +1,16 @@
-import { type FC } from 'react'
+import { type FC, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, History, MessageSquare, ShieldCheck } from 'lucide-react'
+import {
+  ArrowLeft,
+  Calendar,
+  Compass,
+  FileText,
+  History,
+  MessageSquare,
+  RefreshCw,
+  ShieldCheck,
+  Zap,
+} from 'lucide-react'
 import {
   Badge,
   Button,
@@ -11,42 +21,85 @@ import {
   EmptyState,
   LoadingSpinner,
 } from '../../components/common/index.ts'
+import { TacticalPitch } from '../../components/pitch/index.ts'
+import { AnalysisReportView, FollowUpConversation } from '../../components/analysis/index.ts'
 import { useApiQuery } from '../../hooks/useApi.ts'
 import { analysisService } from '../../api/services/analysis.ts'
+import { scenarioService } from '../../api/services/scenarios.ts'
+import { saveRecentAnalysis } from '../../utils/recentAnalyses.ts'
 
 export const AnalysisDetailPage: FC = () => {
   const { id } = useParams<{ id: string }>()
+  const [activeTab, setActiveTab] = useState<'report' | 'discussion'>('report')
 
-  const { data: analysis, isLoading, error, refetch } = useApiQuery(
+  // 1. Fetch Analysis Record
+  const {
+    data: analysis,
+    isLoading: loadingAnalysis,
+    error: analysisError,
+    refetch: refetchAnalysis,
+  } = useApiQuery(
     () => (id ? analysisService.getAnalysisById(id) : Promise.reject(new Error('No ID provided'))),
     [id],
     { enabled: Boolean(id) },
   )
 
-  if (isLoading) {
+  // 2. Fetch Associated Scenario
+  const {
+    data: scenario,
+    isLoading: loadingScenario,
+  } = useApiQuery(
+    () => (analysis?.scenario_id ? scenarioService.getScenarioById(analysis.scenario_id) : Promise.resolve(null)),
+    [analysis?.scenario_id],
+    { enabled: Boolean(analysis?.scenario_id) },
+  )
+
+  // Archive in recent analyses when loaded
+  useEffect(() => {
+    if (analysis) {
+      saveRecentAnalysis({
+        id: analysis.id,
+        scenarioId: analysis.scenario_id,
+        scenarioTitle: analysis.scenario_title,
+        pressingIntensity: analysis.pressing_intensity,
+        status: analysis.status,
+        createdAt: analysis.created_at,
+      })
+    }
+  }, [analysis])
+
+  if (loadingAnalysis) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '64px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '96px 0', gap: '16px' }}>
         <LoadingSpinner size="lg" />
+        <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+          Loading tactical analysis report and conversation history...
+        </div>
       </div>
     )
   }
 
-  if (error || !analysis) {
+  if (analysisError || !analysis) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <Link to="/history">
           <Button variant="ghost" size="sm" icon={<ArrowLeft size={16} />}>
-            Back to History
+            Back to Archive
           </Button>
         </Link>
         <EmptyState
           icon={<History size={24} />}
           title="Analysis Not Found"
-          description={error?.message || `No analysis found with ID ${id}.`}
+          description={analysisError?.message || `No tactical analysis record found matching ID ${id}.`}
           action={
-            <Button variant="secondary" onClick={() => void refetch()}>
-              Retry
-            </Button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <Button variant="secondary" onClick={() => void refetchAnalysis()}>
+                Retry
+              </Button>
+              <Link to="/analysis">
+                <Button variant="primary">Start New Analysis</Button>
+              </Link>
+            </div>
           }
         />
       </div>
@@ -55,65 +108,140 @@ export const AnalysisDetailPage: FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Link to="/history">
-          <Button variant="ghost" size="sm" icon={<ArrowLeft size={16} />}>
-            Back to History
-          </Button>
-        </Link>
-        <Badge variant="pitch" icon={<ShieldCheck size={12} />}>
-          Status: {analysis.status}
-        </Badge>
+      {/* Top Header & Breadcrumbs */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Link to="/history">
+            <Button variant="ghost" size="sm" icon={<ArrowLeft size={16} />}>
+              Archive
+            </Button>
+          </Link>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <Badge variant="pitch" icon={<ShieldCheck size={12} />}>
+                Status: {analysis.status.toUpperCase()}
+              </Badge>
+              {analysis.pressing_intensity && (
+                <Badge variant="danger">{analysis.pressing_intensity} Intensity</Badge>
+              )}
+            </div>
+            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              {analysis.scenario_title}
+            </h2>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Calendar size={12} />
+            {new Date(analysis.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void refetchAnalysis()}
+            icon={<RefreshCw size={14} />}
+            title="Refresh Analysis Record"
+          />
+          <Link to={`/analysis?scenario_id=${analysis.scenario_id}`}>
+            <Button variant="primary" size="sm" icon={<Zap size={14} />}>
+              Re-Analyze Scenario
+            </Button>
+          </Link>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div>
-            <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-              Scenario: {analysis.scenario_title}
-            </span>
-            <CardTitle>{analysis.tactical_summary || 'Tactical Analysis Report'}</CardTitle>
-          </div>
-          {analysis.pressing_intensity && (
-            <Badge variant="tactical">{analysis.pressing_intensity}</Badge>
-          )}
-        </CardHeader>
-        <CardContent>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              {analysis.analysis?.situation_overview?.summary || 'Detailed report generated by single-agent orchestrator.'}
-            </div>
-
-            {/* Conversation History Preview */}
-            <div style={{ marginTop: '16px' }}>
-              <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <MessageSquare size={16} color="var(--color-pitch)" />
-                Session History ({analysis.messages?.length || 0} messages)
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {analysis.messages?.map((msg) => (
-                  <div
-                    key={msg.id}
-                    style={{
-                      padding: '12px 16px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: msg.role === 'user' ? 'var(--bg-elevated)' : 'var(--bg-canvas)',
-                      border: '1px solid var(--border-subtle)',
-                      fontSize: '0.8125rem',
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    <span style={{ fontWeight: 600, color: msg.role === 'user' ? 'var(--color-tactical-light)' : 'var(--color-pitch-light)', textTransform: 'capitalize' }}>
-                      {msg.role}:{' '}
-                    </span>
-                    <span style={{ color: 'var(--text-secondary)' }}>{msg.content}</span>
-                  </div>
-                ))}
+      {/* Primary Pitch Visualizer with AI Tactical Layer Overlay */}
+      {scenario ? (
+        <Card>
+          <CardHeader>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <Badge variant="pitch">Interactive Pitch</Badge>
+                <Badge variant="tactical">Tactical Overlay Active</Badge>
               </div>
+              <CardTitle>
+                Spatial Relationships &amp; Pressing Direction
+              </CardTitle>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <Link to={`/scenarios/${scenario.id}`}>
+              <Button variant="ghost" size="sm" icon={<Compass size={14} />}>
+                Scenario Lineups
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent style={{ padding: '0 16px 16px 16px' }}>
+            <TacticalPitch
+              attackingTeam={scenario.attacking_team}
+              defendingTeam={scenario.defending_team}
+              ballPosition={scenario.ball_position}
+              spatialMetrics={analysis.spatial_metrics}
+              showAnalysisOverlay={true}
+              height="500px"
+            />
+          </CardContent>
+        </Card>
+      ) : loadingScenario ? (
+        <Card>
+          <CardContent style={{ padding: '40px', display: 'flex', justifyContent: 'center' }}>
+            <LoadingSpinner size="md" />
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* View Tabs: 10-Section Structured Report vs Contextual Discussion */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-default)', paddingBottom: '8px' }}>
+        <button
+          type="button"
+          className="pl-btn pl-btn-ghost pl-btn-sm"
+          onClick={() => setActiveTab('report')}
+          style={{
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            color: activeTab === 'report' ? 'var(--color-pitch-light)' : 'var(--text-secondary)',
+            backgroundColor: activeTab === 'report' ? 'rgba(16, 185, 129, 0.12)' : 'transparent',
+            border: activeTab === 'report' ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid transparent',
+            padding: '6px 16px',
+            borderRadius: 'var(--radius-md)',
+          }}
+        >
+          <FileText size={16} />
+          <span>Full 10-Section Tactical Report</span>
+        </button>
+
+        <button
+          type="button"
+          className="pl-btn pl-btn-ghost pl-btn-sm"
+          onClick={() => setActiveTab('discussion')}
+          style={{
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            color: activeTab === 'discussion' ? 'var(--color-tactical-light)' : 'var(--text-secondary)',
+            backgroundColor: activeTab === 'discussion' ? 'rgba(59, 130, 246, 0.12)' : 'transparent',
+            border: activeTab === 'discussion' ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid transparent',
+            padding: '6px 16px',
+            borderRadius: 'var(--radius-md)',
+          }}
+        >
+          <MessageSquare size={16} />
+          <span>Follow-Up Discussion ({analysis.messages?.length || 0})</span>
+        </button>
+      </div>
+
+      {/* Tab Panels */}
+      {activeTab === 'report' ? (
+        <AnalysisReportView
+          report={analysis.analysis}
+          spatialMetrics={analysis.spatial_metrics}
+          scenarioTitle={analysis.scenario_title}
+        />
+      ) : (
+        <FollowUpConversation
+          analysisId={analysis.id}
+          initialMessages={analysis.messages || []}
+          scenarioTitle={analysis.scenario_title}
+        />
+      )}
     </div>
   )
 }

@@ -8,8 +8,10 @@ import {
 import {
   Grid,
   Tag,
+  Zap,
 } from 'lucide-react'
 import type { BallPosition, Player, TeamTacticalSetup } from '../../types/scenario.ts'
+import type { SpatialMetrics } from '../../types/analysis.ts'
 import { PITCH_LENGTH, PITCH_WIDTH, clamp, getPitchZone } from '../../utils/zones.ts'
 
 export interface TacticalPitchProps {
@@ -27,6 +29,8 @@ export interface TacticalPitchProps {
   onUpdateBallPosition?: (position: { x: number; y: number }) => void
   showZones?: boolean
   showLabels?: boolean
+  showAnalysisOverlay?: boolean
+  spatialMetrics?: SpatialMetrics
   className?: string
   height?: number | string
 }
@@ -42,12 +46,17 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
   onUpdateBallPosition,
   showZones: initialShowZones = false,
   showLabels: initialShowLabels = true,
+  showAnalysisOverlay: initialShowAnalysis,
+  spatialMetrics,
   className = '',
   height = '520px',
 }) => {
   const svgRef = useRef<SVGSVGElement | null>(null)
   const [showZones, setShowZones] = useState<boolean>(initialShowZones)
   const [showLabels, setShowLabels] = useState<boolean>(initialShowLabels)
+  const [showAnalysis, setShowAnalysis] = useState<boolean>(
+    initialShowAnalysis !== undefined ? initialShowAnalysis : Boolean(spatialMetrics),
+  )
   const [hoveredCoords, setHoveredCoords] = useState<{ x: number; y: number } | null>(null)
   const [isBallSelected, setIsBallSelected] = useState<boolean>(false)
   const [draggingEntity, setDraggingEntity] = useState<{
@@ -131,6 +140,15 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
       setDraggingEntity({ id: 'match_ball', type: 'ball' })
     }
   }
+
+  // Calculate defending block bounding box if compactness metrics exist
+  const outfieldDefenders = defendingTeam.players.filter((p) => p.role !== 'GK')
+  const defXs = outfieldDefenders.map((p) => p.position.x)
+  const defYs = outfieldDefenders.map((p) => p.position.y)
+  const minDefX = defXs.length ? Math.min(...defXs) : 0
+  const maxDefX = defXs.length ? Math.max(...defXs) : 0
+  const minDefY = defYs.length ? Math.min(...defYs) : 0
+  const maxDefY = defYs.length ? Math.max(...defYs) : 0
 
   return (
     <div
@@ -217,6 +235,26 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
             >
               x:{hoveredCoords.x.toFixed(1)}m, y:{hoveredCoords.y.toFixed(1)}m
             </div>
+          )}
+
+          {spatialMetrics && (
+            <button
+              type="button"
+              className="pl-btn pl-btn-ghost pl-btn-sm"
+              onClick={() => setShowAnalysis((prev) => !prev)}
+              style={{
+                height: '28px',
+                padding: '4px 8px',
+                fontSize: '0.75rem',
+                color: showAnalysis ? '#f43f5e' : 'var(--text-secondary)',
+                backgroundColor: showAnalysis ? 'rgba(244, 63, 94, 0.12)' : 'transparent',
+                border: showAnalysis ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid transparent',
+              }}
+              title="Toggle AI Tactical Analysis Layer (Pressing Vector & Passing Lanes)"
+            >
+              <Zap size={14} />
+              <span>Tactical Overlay</span>
+            </button>
           )}
 
           <button
@@ -308,6 +346,18 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
             <filter id="playerShadow" x="-20%" y="-20%" width="140%" height="140%">
               <feDropShadow dx="0" dy="0.6" stdDeviation="0.6" floodColor="#000000" floodOpacity="0.6" />
             </filter>
+
+            {/* Arrowhead Markers for Pressing Vectors and Lanes */}
+            <marker
+              id="arrowhead-press"
+              markerWidth="6"
+              markerHeight="6"
+              refX="4.5"
+              refY="3"
+              orient="auto"
+            >
+              <polygon points="0 1, 5 3, 0 5" fill="#f43f5e" />
+            </marker>
           </defs>
 
           {/* Pitch Outer Turf Boundary */}
@@ -348,66 +398,157 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
                 fontWeight="700"
                 textAnchor="middle"
                 opacity="0.8"
-                fontFamily="var(--font-mono)"
               >
-                ZONE 14
-              </text>
-
-              {/* Channel Watermark Labels */}
-              <text x="52.5" y="8" fill="#34d399" fontSize="1.1" textAnchor="middle" opacity="0.35">
-                LEFT WING
-              </text>
-              <text x="52.5" y="21" fill="#34d399" fontSize="1.1" textAnchor="middle" opacity="0.35">
-                LEFT HALF-SPACE
-              </text>
-              <text x="52.5" y="34.5" fill="#34d399" fontSize="1.1" textAnchor="middle" opacity="0.35">
-                CENTRAL CHANNEL
-              </text>
-              <text x="52.5" y="48" fill="#34d399" fontSize="1.1" textAnchor="middle" opacity="0.35">
-                RIGHT HALF-SPACE
-              </text>
-              <text x="52.5" y="61" fill="#34d399" fontSize="1.1" textAnchor="middle" opacity="0.35">
-                RIGHT WING
+                Zone 14
               </text>
             </g>
           )}
 
-          {/* Regulation Pitch Markings */}
-          <g id="pitchLines" stroke="rgba(255, 255, 255, 0.55)" strokeWidth="0.3" fill="none">
-            {/* Outer Perimeter */}
+          {/* Pitch Regulation Markings */}
+          <g id="regulationPitchMarkings" stroke="rgba(255, 255, 255, 0.45)" strokeWidth="0.3" fill="none">
+            {/* Outer Pitch Boundary Lines */}
             <rect x="0" y="0" width="105" height="68" />
 
             {/* Halfway Line */}
             <line x1="52.5" y1="0" x2="52.5" y2="68" />
 
-            {/* Center Circle & Center Spot */}
+            {/* Center Circle (radius 9.15m) */}
             <circle cx="52.5" cy="34" r="9.15" />
-            <circle cx="52.5" cy="34" r="0.4" fill="rgba(255, 255, 255, 0.7)" />
+            <circle cx="52.5" cy="34" r="0.4" fill="rgba(255, 255, 255, 0.6)" />
 
-            {/* Left Penalty Area */}
+            {/* Left Penalty Area (16.5m deep, 40.32m wide) */}
             <rect x="0" y="13.84" width="16.5" height="40.32" />
             <rect x="0" y="24.84" width="5.5" height="18.32" />
-            <circle cx="11.0" cy="34.0" r="0.35" fill="rgba(255, 255, 255, 0.7)" />
-            {/* Left Penalty Arc (radius 9.15 centered at 11, 34; outside the box x >= 16.5) */}
-            <path d="M 16.5 26.68 A 9.15 9.15 0 0 1 16.5 41.32" />
+            <circle cx="11" cy="34" r="0.4" fill="rgba(255, 255, 255, 0.6)" />
+            <path d="M 16.5 27.2 A 9.15 9.15 0 0 1 16.5 40.8" />
 
             {/* Right Penalty Area */}
             <rect x="88.5" y="13.84" width="16.5" height="40.32" />
             <rect x="99.5" y="24.84" width="5.5" height="18.32" />
-            <circle cx="94.0" cy="34.0" r="0.35" fill="rgba(255, 255, 255, 0.7)" />
-            {/* Right Penalty Arc (radius 9.15 centered at 94, 34; outside the box x <= 88.5) */}
-            <path d="M 88.5 26.68 A 9.15 9.15 0 0 0 88.5 41.32" />
+            <circle cx="94" cy="34" r="0.4" fill="rgba(255, 255, 255, 0.6)" />
+            <path d="M 88.5 27.2 A 9.15 9.15 0 0 0 88.5 40.8" />
 
             {/* Goal Posts & Nets */}
             <rect x="-2.4" y="30.34" width="2.4" height="7.32" stroke="rgba(255, 255, 255, 0.4)" strokeWidth="0.25" />
             <rect x="105" y="30.34" width="2.4" height="7.32" stroke="rgba(255, 255, 255, 0.4)" strokeWidth="0.25" />
 
-            {/* Corner Arcs (1m radius) */}
+            {/* Corner Arcs */}
             <path d="M 0 1 A 1 1 0 0 0 1 0" />
             <path d="M 0 67 A 1 1 0 0 1 1 68" />
             <path d="M 104 0 A 1 1 0 0 0 105 1" />
             <path d="M 104 68 A 1 1 0 0 1 105 67" />
           </g>
+
+          {/* AI Tactical Analysis Visualizations Layer */}
+          {showAnalysis && spatialMetrics && (
+            <g id="tacticalAnalysisLayer">
+              {/* 1. Defensive Block Compactness Polygon */}
+              {spatialMetrics.compactness && outfieldDefenders.length > 0 && (
+                <g id="defensiveBlockCompactness" opacity="0.85">
+                  <rect
+                    x={minDefX - 1.5}
+                    y={minDefY - 1.5}
+                    width={Math.max(1, maxDefX - minDefX + 3)}
+                    height={Math.max(1, maxDefY - minDefY + 3)}
+                    rx="2"
+                    fill="rgba(244, 63, 94, 0.05)"
+                    stroke="rgba(244, 63, 94, 0.35)"
+                    strokeWidth="0.3"
+                    strokeDasharray="2,2"
+                  />
+                  <text
+                    x={minDefX}
+                    y={Math.max(1.5, minDefY - 2.5)}
+                    fill="#fda4af"
+                    fontSize="1.2"
+                    fontWeight="600"
+                    fontFamily="var(--font-mono)"
+                  >
+                    DEF BLOCK ({spatialMetrics.compactness.vertical_block_length_meters}m &times; {spatialMetrics.compactness.horizontal_block_width_meters}m)
+                  </text>
+                </g>
+              )}
+
+              {/* 2. Passing Lanes */}
+              {spatialMetrics.passing_lanes && spatialMetrics.passing_lanes.map((lane, idx) => {
+                const match = /x=([\d.]+),\s*y=([\d.]+)/.exec(lane.target_zone)
+                if (!match) return null
+                const targetX = parseFloat(match[1])
+                const targetY = parseFloat(match[2])
+                const isBlocked = lane.status === 'blocked_by_cover_shadow'
+                const isContested = lane.status === 'contested'
+                const strokeColor = isBlocked ? '#ef4444' : isContested ? '#f59e0b' : '#10b981'
+                const dash = isBlocked ? '1.5,1.0' : isContested ? '1.0,1.0' : 'none'
+
+                return (
+                  <g key={`lane-${idx}`} opacity="0.9">
+                    <line
+                      x1={ballPosition.x}
+                      y1={ballPosition.y}
+                      x2={targetX}
+                      y2={targetY}
+                      stroke={strokeColor}
+                      strokeWidth="0.45"
+                      strokeDasharray={dash}
+                    />
+                    {isBlocked && (
+                      <g transform={`translate(${(ballPosition.x + targetX) / 2}, ${(ballPosition.y + targetY) / 2})`}>
+                        <circle cx="0" cy="0" r="1.3" fill="rgba(239, 68, 68, 0.9)" />
+                        <text x="0" y="0.45" fill="#ffffff" fontSize="1.1" fontWeight="700" textAnchor="middle">
+                          &times;
+                        </text>
+                      </g>
+                    )}
+                  </g>
+                )
+              })}
+
+              {/* 3. Primary Pressing Vector Directed Arrow */}
+              {spatialMetrics.primary_presser && (
+                <g id="primaryPressingVector">
+                  <line
+                    x1={spatialMetrics.primary_presser.position.x}
+                    y1={spatialMetrics.primary_presser.position.y}
+                    x2={ballPosition.x}
+                    y2={ballPosition.y}
+                    stroke="#f43f5e"
+                    strokeWidth="0.75"
+                    strokeDasharray="1.5,0.8"
+                    markerEnd="url(#arrowhead-press)"
+                  />
+                  <g
+                    transform={`translate(${
+                      (spatialMetrics.primary_presser.position.x + ballPosition.x) / 2
+                    }, ${
+                      (spatialMetrics.primary_presser.position.y + ballPosition.y) / 2 - 2
+                    })`}
+                  >
+                    <rect
+                      x="-8"
+                      y="-1.5"
+                      width="16"
+                      height="2.8"
+                      rx="0.6"
+                      fill="rgba(15, 23, 42, 0.95)"
+                      stroke="#f43f5e"
+                      strokeWidth="0.15"
+                    />
+                    <text
+                      x="0"
+                      y="0.4"
+                      fill="#fca5a5"
+                      fontSize="1.1"
+                      fontWeight="700"
+                      textAnchor="middle"
+                      fontFamily="var(--font-sans)"
+                    >
+                      PRESS &bull; {spatialMetrics.pressing_funnel?.replace('_', ' ').toUpperCase() || 'DIRECT'}
+                    </text>
+                  </g>
+                </g>
+              )}
+            </g>
+          )}
 
           {/* Attacking Team Players */}
           <g id="attackingTeam">
@@ -416,6 +557,13 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
               const isGK = player.role === 'GK'
               const fill = isGK ? '#f59e0b' : '#0284c7'
               const stroke = isGK ? '#fbbf24' : '#38bdf8'
+
+              const isBallCarrier = Boolean(
+                showAnalysis &&
+                  spatialMetrics?.ball_carrier &&
+                  (player.name === spatialMetrics.ball_carrier.name ||
+                    player.number === spatialMetrics.ball_carrier.number),
+              )
 
               return (
                 <g
@@ -427,6 +575,19 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
                   {/* Selection Halo */}
                   {isSelected && (
                     <circle cx="0" cy="0" r="3.6" fill="none" stroke="#38bdf8" strokeWidth="0.3" strokeDasharray="0.8,0.8" />
+                  )}
+
+                  {/* Ball Carrier Tactical Highlight Halo */}
+                  {isBallCarrier && (
+                    <circle
+                      cx="0"
+                      cy="0"
+                      r="3.2"
+                      fill="none"
+                      stroke="#38bdf8"
+                      strokeWidth="0.4"
+                      strokeDasharray="1.2,0.8"
+                    />
                   )}
 
                   {/* Player Token Circle */}
@@ -453,6 +614,31 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
                   >
                     {player.number}
                   </text>
+
+                  {/* Ball Carrier Badge Pill */}
+                  {isBallCarrier && (
+                    <g pointerEvents="none">
+                      <rect
+                        x="-4.5"
+                        y="-4.2"
+                        width="9.0"
+                        height="1.8"
+                        rx="0.5"
+                        fill="rgba(14, 165, 233, 0.95)"
+                      />
+                      <text
+                        x="0"
+                        y="-2.9"
+                        fill="#ffffff"
+                        fontSize="1.0"
+                        fontWeight="700"
+                        textAnchor="middle"
+                        fontFamily="var(--font-sans)"
+                      >
+                        BALL CARRIER
+                      </text>
+                    </g>
+                  )}
 
                   {/* Role / Name Label */}
                   {showLabels && (
@@ -493,6 +679,21 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
               const fill = isGK ? '#a855f7' : '#059669'
               const stroke = isGK ? '#c084fc' : '#10b981'
 
+              const isPrimaryPresser = Boolean(
+                showAnalysis &&
+                  spatialMetrics?.primary_presser &&
+                  (player.id === spatialMetrics.primary_presser.id ||
+                    player.number === spatialMetrics.primary_presser.number),
+              )
+
+              const isSupportingPresser = Boolean(
+                showAnalysis &&
+                  !isPrimaryPresser &&
+                  spatialMetrics?.supporting_pressers?.some(
+                    (sp) => sp.id === player.id || sp.number === player.number,
+                  ),
+              )
+
               return (
                 <g
                   key={player.id}
@@ -503,6 +704,32 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
                   {/* Selection Halo */}
                   {isSelected && (
                     <circle cx="0" cy="0" r="3.6" fill="none" stroke="#10b981" strokeWidth="0.3" strokeDasharray="0.8,0.8" />
+                  )}
+
+                  {/* Primary Presser Distinctive Halo */}
+                  {isPrimaryPresser && (
+                    <circle
+                      cx="0"
+                      cy="0"
+                      r="3.2"
+                      fill="none"
+                      stroke="#f43f5e"
+                      strokeWidth="0.45"
+                      strokeDasharray="1.2,0.6"
+                    />
+                  )}
+
+                  {/* Supporting Presser Halo */}
+                  {isSupportingPresser && (
+                    <circle
+                      cx="0"
+                      cy="0"
+                      r="3.0"
+                      fill="none"
+                      stroke="#fb923c"
+                      strokeWidth="0.35"
+                      strokeDasharray="0.8,0.8"
+                    />
                   )}
 
                   {/* Player Token Circle */}
@@ -529,6 +756,56 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
                   >
                     {player.number}
                   </text>
+
+                  {/* Primary Presser Pill */}
+                  {isPrimaryPresser && (
+                    <g pointerEvents="none">
+                      <rect
+                        x="-4.5"
+                        y="-4.2"
+                        width="9.0"
+                        height="1.8"
+                        rx="0.5"
+                        fill="rgba(244, 63, 94, 0.95)"
+                      />
+                      <text
+                        x="0"
+                        y="-2.9"
+                        fill="#ffffff"
+                        fontSize="1.0"
+                        fontWeight="700"
+                        textAnchor="middle"
+                        fontFamily="var(--font-sans)"
+                      >
+                        1st PRESS
+                      </text>
+                    </g>
+                  )}
+
+                  {/* Supporting Presser Pill */}
+                  {isSupportingPresser && (
+                    <g pointerEvents="none">
+                      <rect
+                        x="-3.5"
+                        y="-4.2"
+                        width="7.0"
+                        height="1.8"
+                        rx="0.5"
+                        fill="rgba(251, 146, 60, 0.95)"
+                      />
+                      <text
+                        x="0"
+                        y="-2.9"
+                        fill="#ffffff"
+                        fontSize="1.0"
+                        fontWeight="700"
+                        textAnchor="middle"
+                        fontFamily="var(--font-sans)"
+                      >
+                        COVER
+                      </text>
+                    </g>
+                  )}
 
                   {/* Role / Name Label */}
                   {showLabels && (
@@ -606,6 +883,14 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
             Ball: <strong>{ballPosition.zone || getPitchZone(ballPosition.x, ballPosition.y)}</strong> (x:
             {ballPosition.x}m, y:{ballPosition.y}m)
           </span>
+          {spatialMetrics && (
+            <>
+              <span>&bull;</span>
+              <span style={{ color: '#fda4af' }}>
+                Funneling: <strong>{spatialMetrics.pressing_funnel?.replace('_', ' ') || 'standard'}</strong>
+              </span>
+            </>
+          )}
         </div>
 
         {editable && (

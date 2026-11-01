@@ -93,6 +93,55 @@ export interface ConversationMessage {
   created_at: string
 }
 
+export interface BallCarrierMetric {
+  name?: string
+  number?: number
+  role?: string
+  coordinates: { x: number; y: number }
+  distance_to_ball: number
+}
+
+export interface PresserMetric {
+  id?: string
+  name: string
+  number: number
+  role: string
+  position: { x: number; y: number }
+  distance_to_ball: number
+}
+
+export interface PassingLaneMetric {
+  target_player: string
+  target_zone: string
+  lane_distance_meters: number
+  status: 'blocked_by_cover_shadow' | 'contested' | 'open' | string
+  cover_shadow_defenders: string[]
+  nearest_defender_distance: number
+}
+
+export interface CompactnessMetric {
+  vertical_block_length_meters: number
+  horizontal_block_width_meters: number
+  is_compact: boolean
+}
+
+export interface SpatialMetrics {
+  ball_carrier?: BallCarrierMetric
+  primary_presser?: PresserMetric
+  supporting_pressers?: PresserMetric[]
+  pressing_funnel?: 'touchline_lock' | 'flank_funneling' | 'central_compression' | 'neutral' | string
+  pressing_vector?: { dx: number; dy: number }
+  passing_lanes?: PassingLaneMetric[]
+  passing_lane_summary?: {
+    total_outlets: number
+    blocked_by_cover_shadow: number
+    contested: number
+    open: number
+  }
+  compactness?: CompactnessMetric
+  open_options?: string[]
+}
+
 export interface Analysis {
   id: string
   scenario_id: string
@@ -101,7 +150,7 @@ export interface Analysis {
   tactical_summary?: string
   pressing_intensity?: string
   analysis?: FullTacticalAnalysisReport
-  spatial_metrics?: Record<string, unknown>
+  spatial_metrics?: SpatialMetrics
   tools_executed?: string[]
   created_at: string
   updated_at: string

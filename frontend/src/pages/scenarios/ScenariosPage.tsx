@@ -118,17 +118,26 @@ export const ScenariosPage: FC = () => {
                 </div>
               </CardContent>
               <CardFooter>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Status: Active</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    navigate(`/scenarios/${scenario.id}`)
+                  }}
+                >
+                  Inspect
+                </Button>
                 <Button
                   variant="primary"
                   size="sm"
                   icon={<Zap size={14} />}
                   onClick={(e) => {
                     e.stopPropagation()
-                    navigate(`/scenarios/${scenario.id}`)
+                    navigate(`/analysis?scenario_id=${scenario.id}`)
                   }}
                 >
-                  Inspect Pitch
+                  Analyze
                 </Button>
               </CardFooter>
             </Card>
