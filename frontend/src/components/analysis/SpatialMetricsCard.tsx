@@ -180,3 +180,4 @@ export const SpatialMetricsCard: FC<SpatialMetricsCardProps> = ({ metrics }) => 
     </Card>
   )
 }
+

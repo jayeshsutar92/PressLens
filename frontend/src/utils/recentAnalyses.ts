@@ -43,3 +43,4 @@ export function removeRecentAnalysis(id: string): void {
     // Graceful fallback
   }
 }
+
