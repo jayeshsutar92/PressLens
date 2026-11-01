@@ -42,3 +42,4 @@ async def test_list_analyses_endpoint(async_client: AsyncClient):
     assert filtered_resp.status_code == 200
     filtered_list = filtered_resp.json()
     assert all(a["scenario_id"] == scenario_id for a in filtered_list)
+

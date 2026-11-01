@@ -175,3 +175,4 @@ async def test_follow_up_question_too_short(async_client: AsyncClient):
     data = response.json()
     assert data["success"] is False
     assert data["error"]["code"] == "VALIDATION_ERROR"
+

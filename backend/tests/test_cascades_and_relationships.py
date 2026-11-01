@@ -126,3 +126,4 @@ async def test_knowledge_document_cascade_deletes_chunks(db_session: AsyncSessio
 
     chunks_chk = await db_session.execute(select(KnowledgeChunk).where(KnowledgeChunk.document_id == doc_id))
     assert len(list(chunks_chk.scalars().all())) == 0
+

@@ -97,3 +97,4 @@ async def test_groq_structured_completion_schema_mismatch_raises_ai_provider_err
                 schema_class=SampleTacticalModel,
             )
         assert "schema" in exc_info.value.message.lower()
+
