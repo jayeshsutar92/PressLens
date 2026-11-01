@@ -1,12 +1,18 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import List, Union
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_env_files = (
+    str(Path(__file__).resolve().parent.parent.parent / ".env"),
+    ".env",
+)
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_env_files,
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,

@@ -1,3 +1,4 @@
+from unittest.mock import patch
 import pytest
 from httpx import AsyncClient
 
@@ -24,3 +25,14 @@ async def test_health_check_endpoint(async_client: AsyncClient):
     assert data["database"] == "connected"
     assert "version" in data
     assert "timestamp" in data
+
+
+@pytest.mark.asyncio
+async def test_health_check_database_disconnected_returns_503(async_client: AsyncClient):
+    """When DB connection check fails, /api/v1/health should return 503 SERVICE UNAVAILABLE with degraded status."""
+    with patch("app.api.v1.endpoints.health.check_db_connection", return_value=False):
+        response = await async_client.get("/api/v1/health")
+        assert response.status_code == 503
+        data = response.json()
+        assert data["status"] == "degraded"
+        assert data["database"] == "disconnected"

@@ -7,7 +7,6 @@ from app.core.exceptions import EntityNotFoundError
 from app.core.logging import logger
 from app.models.analysis import Analysis
 from app.models.conversation_message import ConversationMessage
-from app.models.scenario import Scenario
 from app.schemas.analysis import (
     AnalysisCreateRequest,
     AnalysisDetailResponse,
@@ -112,6 +111,52 @@ class AnalysisService:
             created_at=analysis.created_at,
             updated_at=analysis.updated_at,
         )
+
+    @classmethod
+    async def get_analyses(
+        cls,
+        db: AsyncSession,
+        scenario_id: Optional[uuid.UUID] = None,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> List[AnalysisResponse]:
+        """Retrieves a paginated list of previously generated analyses with scenario titles."""
+        stmt = select(Analysis).order_by(Analysis.created_at.desc()).offset(skip).limit(limit)
+        if scenario_id:
+            stmt = stmt.where(Analysis.scenario_id == scenario_id)
+
+        result = await db.execute(stmt)
+        analyses = list(result.scalars().all())
+
+        responses: List[AnalysisResponse] = []
+        for a in analyses:
+            scenario = await ScenarioService.get_scenario_by_id(db, a.scenario_id)
+            scenario_title = scenario.title if scenario else "Tactical Scenario"
+            metrics = a.metrics or {}
+            structured_raw = metrics.get("structured_analysis")
+            report: Optional[FullTacticalAnalysisReport] = None
+            if structured_raw:
+                try:
+                    report = FullTacticalAnalysisReport.model_validate(structured_raw)
+                except Exception:
+                    pass
+
+            responses.append(
+                AnalysisResponse(
+                    id=a.id,
+                    scenario_id=a.scenario_id,
+                    scenario_title=scenario_title,
+                    status=a.status,
+                    tactical_summary=a.tactical_summary,
+                    pressing_intensity=a.pressing_intensity,
+                    analysis=report,
+                    spatial_metrics=metrics.get("spatial_metrics"),
+                    tools_executed=metrics.get("tools_executed"),
+                    created_at=a.created_at,
+                    updated_at=a.updated_at,
+                )
+            )
+        return responses
 
     @classmethod
     async def get_analysis_by_id(

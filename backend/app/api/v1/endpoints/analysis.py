@@ -1,5 +1,6 @@
+from typing import List, Optional
 import uuid
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.schemas.analysis import (
@@ -30,6 +31,25 @@ async def create_analysis(
 ) -> AnalysisResponse:
     """Initiates tactical analysis on a match scenario."""
     return await AnalysisService.create_analysis(db=db, request=request)
+
+
+@router.get(
+    "",
+    response_model=List[AnalysisResponse],
+    summary="List Tactical Analyses History",
+    description="Returns a paginated list of previously generated analyses with optional scenario filtering.",
+    status_code=status.HTTP_200_OK,
+)
+async def list_analyses(
+    scenario_id: Optional[uuid.UUID] = Query(None, description="Optional scenario ID filter"),
+    skip: int = Query(0, ge=0, description="Pagination offset"),
+    limit: int = Query(20, ge=1, le=100, description="Pagination limit"),
+    db: AsyncSession = Depends(get_db),
+) -> List[AnalysisResponse]:
+    """Retrieves previous analyses history."""
+    return await AnalysisService.get_analyses(
+        db=db, scenario_id=scenario_id, skip=skip, limit=limit
+    )
 
 
 @router.get(
