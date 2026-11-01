@@ -11,7 +11,7 @@ import {
   Zap,
 } from 'lucide-react'
 import type { BallPosition, Player, TeamTacticalSetup } from '../../types/scenario.ts'
-import type { SpatialMetrics } from '../../types/analysis.ts'
+import type { PassingLaneMetric, SpatialMetrics } from '../../types/analysis.ts'
 import { PITCH_LENGTH, PITCH_WIDTH, clamp, getPitchZone } from '../../utils/zones.ts'
 
 export interface TacticalPitchProps {
@@ -20,6 +20,12 @@ export interface TacticalPitchProps {
   ballPosition: BallPosition
   selectedPlayerId?: string | null
   onSelectPlayer?: (player: Player, team: 'attacking' | 'defending') => void
+  selectedLaneIndex?: number | null
+  onSelectLane?: (lane: PassingLaneMetric, index: number) => void
+  selectedTrap?: boolean
+  onSelectTrap?: () => void
+  selectedCompactness?: boolean
+  onSelectCompactness?: () => void
   editable?: boolean
   onUpdatePlayerPosition?: (
     playerId: string,
@@ -41,6 +47,12 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
   ballPosition,
   selectedPlayerId,
   onSelectPlayer,
+  selectedLaneIndex,
+  onSelectLane,
+  selectedTrap = false,
+  onSelectTrap,
+  selectedCompactness = false,
+  onSelectCompactness,
   editable = false,
   onUpdatePlayerPosition,
   onUpdateBallPosition,
@@ -444,27 +456,35 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
             <g id="tacticalAnalysisLayer">
               {/* 1. Defensive Block Compactness Polygon */}
               {spatialMetrics.compactness && outfieldDefenders.length > 0 && (
-                <g id="defensiveBlockCompactness" opacity="0.85">
+                <g
+                  id="defensiveBlockCompactness"
+                  opacity="0.85"
+                  style={{ cursor: 'pointer' }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSelectCompactness?.()
+                  }}
+                >
                   <rect
                     x={minDefX - 1.5}
                     y={minDefY - 1.5}
                     width={Math.max(1, maxDefX - minDefX + 3)}
                     height={Math.max(1, maxDefY - minDefY + 3)}
                     rx="2"
-                    fill="rgba(244, 63, 94, 0.05)"
-                    stroke="rgba(244, 63, 94, 0.35)"
-                    strokeWidth="0.3"
+                    fill={selectedCompactness ? 'rgba(244, 63, 94, 0.15)' : 'rgba(244, 63, 94, 0.05)'}
+                    stroke={selectedCompactness ? '#f43f5e' : 'rgba(244, 63, 94, 0.35)'}
+                    strokeWidth={selectedCompactness ? '0.6' : '0.3'}
                     strokeDasharray="2,2"
                   />
                   <text
                     x={minDefX}
                     y={Math.max(1.5, minDefY - 2.5)}
-                    fill="#fda4af"
+                    fill={selectedCompactness ? '#f43f5e' : '#fda4af'}
                     fontSize="1.2"
                     fontWeight="600"
                     fontFamily="var(--font-mono)"
                   >
-                    DEF BLOCK ({spatialMetrics.compactness.vertical_block_length_meters}m &times; {spatialMetrics.compactness.horizontal_block_width_meters}m)
+                    DEF BLOCK ({spatialMetrics.compactness.vertical_block_length_meters}m &times; {spatialMetrics.compactness.horizontal_block_width_meters}m) - Click to Inspect
                   </text>
                 </g>
               )}
@@ -479,21 +499,54 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
                 const isContested = lane.status === 'contested'
                 const strokeColor = isBlocked ? '#ef4444' : isContested ? '#f59e0b' : '#10b981'
                 const dash = isBlocked ? '1.5,1.0' : isContested ? '1.0,1.0' : 'none'
+                const isSelected = selectedLaneIndex === idx
 
                 return (
-                  <g key={`lane-${idx}`} opacity="0.9">
+                  <g
+                    key={`lane-${idx}`}
+                    opacity="0.95"
+                    style={{ cursor: 'pointer' }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onSelectLane?.(lane, idx)
+                    }}
+                  >
+                    {/* Wide transparent clickable stroke for easy clicking */}
+                    <line
+                      x1={ballPosition.x}
+                      y1={ballPosition.y}
+                      x2={targetX}
+                      y2={targetY}
+                      stroke="transparent"
+                      strokeWidth="3.5"
+                    />
+
+                    {/* Selection halo */}
+                    {isSelected && (
+                      <line
+                        x1={ballPosition.x}
+                        y1={ballPosition.y}
+                        x2={targetX}
+                        y2={targetY}
+                        stroke="#ffffff"
+                        strokeWidth="1.2"
+                        strokeDasharray="1.0,1.0"
+                        opacity="0.75"
+                      />
+                    )}
+
                     <line
                       x1={ballPosition.x}
                       y1={ballPosition.y}
                       x2={targetX}
                       y2={targetY}
                       stroke={strokeColor}
-                      strokeWidth="0.45"
+                      strokeWidth={isSelected ? '0.75' : '0.45'}
                       strokeDasharray={dash}
                     />
                     {isBlocked && (
                       <g transform={`translate(${(ballPosition.x + targetX) / 2}, ${(ballPosition.y + targetY) / 2})`}>
-                        <circle cx="0" cy="0" r="1.3" fill="rgba(239, 68, 68, 0.9)" />
+                        <circle cx="0" cy="0" r={isSelected ? '1.7' : '1.3'} fill="rgba(239, 68, 68, 0.95)" />
                         <text x="0" y="0.45" fill="#ffffff" fontSize="1.1" fontWeight="700" textAnchor="middle">
                           &times;
                         </text>
@@ -505,14 +558,21 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
 
               {/* 3. Primary Pressing Vector Directed Arrow */}
               {spatialMetrics.primary_presser && (
-                <g id="primaryPressingVector">
+                <g
+                  id="primaryPressingVector"
+                  style={{ cursor: 'pointer' }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSelectTrap?.()
+                  }}
+                >
                   <line
                     x1={spatialMetrics.primary_presser.position.x}
                     y1={spatialMetrics.primary_presser.position.y}
                     x2={ballPosition.x}
                     y2={ballPosition.y}
                     stroke="#f43f5e"
-                    strokeWidth="0.75"
+                    strokeWidth={selectedTrap ? '1.2' : '0.75'}
                     strokeDasharray="1.5,0.8"
                     markerEnd="url(#arrowhead-press)"
                   />
@@ -524,25 +584,25 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
                     })`}
                   >
                     <rect
-                      x="-8"
+                      x="-9"
                       y="-1.5"
-                      width="16"
+                      width="18"
                       height="2.8"
                       rx="0.6"
-                      fill="rgba(15, 23, 42, 0.95)"
+                      fill={selectedTrap ? '#f43f5e' : 'rgba(15, 23, 42, 0.95)'}
                       stroke="#f43f5e"
-                      strokeWidth="0.15"
+                      strokeWidth="0.2"
                     />
                     <text
                       x="0"
                       y="0.4"
-                      fill="#fca5a5"
+                      fill={selectedTrap ? '#ffffff' : '#fca5a5'}
                       fontSize="1.1"
                       fontWeight="700"
                       textAnchor="middle"
                       fontFamily="var(--font-sans)"
                     >
-                      PRESS &bull; {spatialMetrics.pressing_funnel?.replace('_', ' ').toUpperCase() || 'DIRECT'}
+                      PRESS TRAP &bull; {spatialMetrics.pressing_funnel?.replace(/_/g, ' ').toUpperCase() || 'DIRECT'}
                     </text>
                   </g>
                 </g>
@@ -571,6 +631,7 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
                   transform={`translate(${player.position.x}, ${player.position.y})`}
                   style={{ cursor: editable ? 'grab' : 'pointer' }}
                   onMouseDown={(e) => handlePlayerMouseDown(e, player, 'attacking')}
+                  onClick={(e) => handlePlayerMouseDown(e, player, 'attacking')}
                 >
                   {/* Selection Halo */}
                   {isSelected && (
@@ -700,6 +761,7 @@ export const TacticalPitch: FC<TacticalPitchProps> = ({
                   transform={`translate(${player.position.x}, ${player.position.y})`}
                   style={{ cursor: editable ? 'grab' : 'pointer' }}
                   onMouseDown={(e) => handlePlayerMouseDown(e, player, 'defending')}
+                  onClick={(e) => handlePlayerMouseDown(e, player, 'defending')}
                 >
                   {/* Selection Halo */}
                   {isSelected && (

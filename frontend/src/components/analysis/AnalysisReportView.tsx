@@ -2,6 +2,8 @@ import { type FC } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
+  BarChart2,
+  BookOpen,
   CheckCircle2,
   Compass,
   Eye,
@@ -15,7 +17,7 @@ import {
   Zap,
 } from 'lucide-react'
 import type { FullTacticalAnalysisReport, SpatialMetrics } from '../../types/analysis.ts'
-import { Badge, Card, CardContent, CardHeader, CardTitle } from '../common/index.ts'
+import { Badge, Card, CardContent, CardHeader, CardTitle, CollapsibleSection } from '../common/index.ts'
 import { KnowledgeSourcesCard } from './KnowledgeSourcesCard.tsx'
 import { SpatialMetricsCard } from './SpatialMetricsCard.tsx'
 
@@ -56,20 +58,23 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* 1. Situation Overview */}
+      {/* 1. FAN HERO CARD: The Plain-English Big Picture */}
       {situation_overview && (
-        <Card>
+        <Card style={{ borderLeft: '4px solid var(--color-pitch)', background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, rgba(20, 24, 33, 0.6) 100%)' }}>
           <CardHeader>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                <Badge variant="pitch" icon={<Sparkles size={12} />}>
+                  Fan-Friendly Summary
+                </Badge>
                 <Badge variant="tactical">
                   {situation_overview.match_phase?.replace('_', ' ').toUpperCase() || 'MATCH PHASE'}
                 </Badge>
                 <Badge variant="default">{situation_overview.tactical_situation}</Badge>
               </div>
               <CardTitle>
-                <Compass size={20} color="var(--color-tactical)" />
-                Situation Overview: {scenarioTitle || 'Tactical Setup'}
+                <Compass size={22} color="var(--color-pitch)" />
+                The Big Picture: {scenarioTitle || 'Tactical Setup'}
               </CardTitle>
             </div>
           </CardHeader>
@@ -77,37 +82,53 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div
                 style={{
-                  fontSize: '0.9375rem',
+                  fontSize: '1rem',
                   color: 'var(--text-primary)',
                   lineHeight: 1.6,
-                  padding: '14px 18px',
+                  padding: '16px 20px',
                   borderRadius: 'var(--radius-md)',
                   backgroundColor: 'var(--bg-canvas)',
-                  borderLeft: '4px solid var(--color-tactical)',
+                  border: '1px solid var(--border-subtle)',
+                  fontWeight: 450,
                 }}
               >
                 {situation_overview.summary}
               </div>
 
+              {/* 3 Quick-Grasp Cards for Fans */}
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
                   gap: '12px',
                   fontSize: '0.8125rem',
                 }}
               >
-                <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)' }}>
-                  <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Attacking Structure:</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>{situation_overview.attacking_team_setup}</strong>
+                <div style={{ padding: '12px 14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)', border: '1px solid var(--border-subtle)' }}>
+                  <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '4px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Attacking Setup:
+                  </span>
+                  <strong style={{ color: 'var(--text-primary)', fontSize: '0.875rem' }}>
+                    {situation_overview.attacking_team_setup}
+                  </strong>
                 </div>
-                <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)' }}>
-                  <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Defending Block:</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>{situation_overview.defending_team_setup}</strong>
+
+                <div style={{ padding: '12px 14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)', border: '1px solid var(--border-subtle)' }}>
+                  <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '4px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Defending Shape:
+                  </span>
+                  <strong style={{ color: 'var(--text-primary)', fontSize: '0.875rem' }}>
+                    {situation_overview.defending_team_setup}
+                  </strong>
                 </div>
-                <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)' }}>
-                  <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Ball Location:</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>{situation_overview.ball_location_summary}</strong>
+
+                <div style={{ padding: '12px 14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)', border: '1px solid var(--border-subtle)' }}>
+                  <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '4px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Ball Location:
+                  </span>
+                  <strong style={{ color: 'var(--text-primary)', fontSize: '0.875rem' }}>
+                    {situation_overview.ball_location_summary}
+                  </strong>
                 </div>
               </div>
             </div>
@@ -115,8 +136,49 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
         </Card>
       )}
 
-      {/* 2. Deterministic Spatial Metrics (Computed by Python Geometry Tools) */}
-      {spatialMetrics && <SpatialMetricsCard metrics={spatialMetrics} />}
+      {/* 2. FAN WATCH POINTS: What Ordinary Fans Should Watch Next (Promoted to Top) */}
+      {fan_watch_points && (
+        <Card style={{ backgroundColor: 'rgba(59, 130, 246, 0.05)', borderColor: 'rgba(59, 130, 246, 0.35)' }}>
+          <CardHeader>
+            <CardTitle>
+              <Lightbulb size={20} color="var(--color-tactical-light)" />
+              What to Watch in This Moment
+            </CardTitle>
+            <Badge variant="tactical">Fan Insight</Badge>
+          </CardHeader>
+          <CardContent>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+              <div style={{ padding: '14px 16px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)', border: '1px solid var(--border-subtle)' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-tactical-light)', fontWeight: 700, display: 'block', marginBottom: '6px', letterSpacing: '0.05em' }}>
+                  NEXT DECISIVE ACTION TO WATCH
+                </span>
+                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.55 }}>
+                  {fan_watch_points.what_to_watch_next}
+                </p>
+              </div>
+
+              <div style={{ padding: '14px 16px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)', border: '1px solid var(--border-subtle)' }}>
+                <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 700, display: 'block', marginBottom: '6px', letterSpacing: '0.05em' }}>
+                  KEY DUEL TO FOLLOW
+                </span>
+                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.55 }}>
+                  {fan_watch_points.key_duel_to_follow}
+                </p>
+              </div>
+
+              <div style={{ padding: '14px 16px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)', border: '1px solid rgba(16, 185, 129, 0.25)', gridColumn: '1 / -1' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-pitch)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', letterSpacing: '0.05em' }}>
+                  <Sparkles size={14} />
+                  KEY TACTICAL TAKEAWAY
+                </span>
+                <p style={{ margin: 0, fontSize: '0.9375rem', color: 'var(--color-pitch-light)', fontWeight: 500, lineHeight: 1.55 }}>
+                  &ldquo;{fan_watch_points.tactical_takeaway}&rdquo;
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 3. Pressing Strategy & Core Rationale */}
       {pressing_strategy && (
@@ -124,7 +186,7 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
           <CardHeader>
             <CardTitle>
               <Flame size={20} color="#f43f5e" />
-              Pressing Strategy & Coordination
+              Pressing Strategy &amp; Defensive Goal
             </CardTitle>
             <Badge variant="danger">{pressing_strategy.intensity} Intensity</Badge>
           </CardHeader>
@@ -141,7 +203,7 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
 
               <div>
                 <h4 style={{ margin: '0 0 6px 0', fontSize: '0.8125rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Pressing Direction & Funneling
+                  Pressing Direction &amp; Funneling
                 </h4>
                 <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
                   {pressing_strategy.pressing_direction}
@@ -150,7 +212,7 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
 
               <div style={{ gridColumn: '1 / -1' }}>
                 <h4 style={{ margin: '0 0 6px 0', fontSize: '0.8125rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Coordination Scheme Across Units
+                  Coordination Across the Team
                 </h4>
                 <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                   {pressing_strategy.coordination_scheme}
@@ -161,27 +223,26 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
         </Card>
       )}
 
-      {/* 4. Pressing Triggers & Traps */}
+      {/* 4. Pressing Triggers & Tactical Traps */}
       {pressing_triggers && (
         <Card>
           <CardHeader>
             <CardTitle>
               <Zap size={20} color="#f59e0b" />
-              Pressing Triggers & Tactical Traps
+              Pressing Triggers &amp; Baited Traps
             </CardTitle>
             {pressing_triggers.primary_trigger_player && (
               <Badge variant="warning">
-                Led by {pressing_triggers.primary_trigger_player}
+                Triggered by {pressing_triggers.primary_trigger_player}
               </Badge>
             )}
           </CardHeader>
           <CardContent>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-              {/* Visual Cues */}
               <div>
                 <h4 style={{ margin: '0 0 8px 0', fontSize: '0.8125rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Eye size={14} color="#f59e0b" />
-                  Visual & Spatial Triggers
+                  Visual Cues That Trigger the Press
                 </h4>
                 <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.6 }}>
                   {pressing_triggers.visual_triggers.map((trigger, i) => (
@@ -190,11 +251,10 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
                 </ul>
               </div>
 
-              {/* Tactical Traps */}
               <div>
                 <h4 style={{ margin: '0 0 8px 0', fontSize: '0.8125rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Radio size={14} color="#ef4444" />
-                  Baited Traps
+                  Tactical Traps Set by Defenders
                 </h4>
                 <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.6 }}>
                   {pressing_triggers.tactical_traps.map((trap, i) => (
@@ -213,13 +273,13 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
           <CardHeader>
             <CardTitle>
               <Shield size={20} color="var(--color-pitch)" />
-              Passing Lane Coverage & Cover Shadows
+              Passing Lanes &amp; Cover Shadows
             </CardTitle>
+            <Badge variant="default">Interactive on Pitch</Badge>
           </CardHeader>
           <CardContent>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
-              {/* Active Cover Shadows */}
-              <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+              <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)', border: '1px solid rgba(244, 63, 94, 0.2)' }}>
                 <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: '#f43f5e', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <ShieldAlert size={14} />
                   Active Cover Shadows
@@ -231,8 +291,7 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
                 </ul>
               </div>
 
-              {/* Directly Blocked Options */}
-              <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)' }}>
+              <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
                 <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: '#ef4444', marginBottom: '8px' }}>
                   Blocked Options
                 </div>
@@ -243,10 +302,9 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
                 </ul>
               </div>
 
-              {/* Contested Options */}
-              <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)' }}>
+              <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
                 <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: '#f59e0b', marginBottom: '8px' }}>
-                  Contested Options (Secondary Pressure)
+                  Contested Options (Risky)
                 </div>
                 <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                   {passing_lane_coverage.contested_options.map((opt, i) => (
@@ -255,8 +313,7 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
                 </ul>
               </div>
 
-              {/* Open Escape Routes */}
-              <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)' }}>
+              <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
                 <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--color-pitch-light)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <CheckCircle2 size={14} />
                   Open Escape Routes
@@ -274,9 +331,8 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
 
       {/* 6. Tactical Advantages vs Exposed Spaces (Side-by-Side Comparison) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-        {/* Tactical Advantages */}
         {tactical_advantages && (
-          <Card style={{ borderColor: 'rgba(16, 185, 129, 0.3)' }}>
+          <Card style={{ borderColor: 'rgba(16, 185, 129, 0.35)' }}>
             <CardHeader>
               <CardTitle>
                 <CheckCircle2 size={18} color="var(--color-pitch)" />
@@ -286,7 +342,7 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
             <CardContent>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '2px' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-pitch)', fontWeight: 600, marginBottom: '2px' }}>
                     COMPACTNESS EDGE
                   </div>
                   <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
@@ -295,7 +351,7 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
                 </div>
 
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '2px' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-pitch)', fontWeight: 600, marginBottom: '2px' }}>
                     TURNOVER POTENTIAL
                   </div>
                   <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
@@ -320,20 +376,19 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
           </Card>
         )}
 
-        {/* Exposed Spaces and Vulnerabilities */}
         {exposed_spaces && (
-          <Card style={{ borderColor: 'rgba(239, 68, 68, 0.3)' }}>
+          <Card style={{ borderColor: 'rgba(239, 68, 68, 0.35)' }}>
             <CardHeader>
               <CardTitle>
                 <AlertTriangle size={18} color="#ef4444" />
-                Exposed Spaces & Risks
+                Risks &amp; Exposed Spaces
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '2px' }}>
-                    REST-DEFENSE PROFILE
+                  <div style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600, marginBottom: '2px' }}>
+                    REST-DEFENSE VULNERABILITY
                   </div>
                   <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
                     {exposed_spaces.rest_defense_risk}
@@ -379,7 +434,7 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
           <CardHeader>
             <CardTitle>
               <ArrowRight size={20} color="var(--color-tactical)" />
-              Possible Opposition Responses
+              How the Opponent Can Break the Press
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -416,95 +471,73 @@ export const AnalysisReportView: FC<AnalysisReportViewProps> = ({
         </Card>
       )}
 
-      {/* 8. Fan Watch Points: What Ordinary Fans Should Watch Next */}
-      {fan_watch_points && (
-        <Card style={{ backgroundColor: 'rgba(59, 130, 246, 0.04)', borderColor: 'rgba(59, 130, 246, 0.3)' }}>
-          <CardHeader>
-            <CardTitle>
-              <Lightbulb size={20} color="var(--color-tactical-light)" />
-              What the Fan Should Watch Next
-            </CardTitle>
-            <Badge variant="tactical">Fan Insight</Badge>
-          </CardHeader>
-          <CardContent>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-              <div style={{ padding: '12px 14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
-                  NEXT DECISIVE ACTION TO WATCH
-                </span>
-                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                  {fan_watch_points.what_to_watch_next}
-                </p>
-              </div>
+      {/* COLLAPSIBLE ADVANCED SECTIONS: Keep deep technical data accessible without overwhelming fans */}
 
-              <div style={{ padding: '12px 14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
-                  KEY DUEL TO FOLLOW
-                </span>
-                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                  {fan_watch_points.key_duel_to_follow}
-                </p>
-              </div>
-
-              <div style={{ padding: '12px 14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-canvas)', gridColumn: '1 / -1' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                  <Sparkles size={14} color="var(--color-pitch)" />
-                  TACTICAL TAKEAWAY
-                </span>
-                <p style={{ margin: 0, fontSize: '0.9375rem', color: 'var(--color-pitch-light)', fontWeight: 500, lineHeight: 1.5 }}>
-                  &ldquo;{fan_watch_points.tactical_takeaway}&rdquo;
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* 8. Advanced Deterministic Spatial & Geometry Metrics */}
+      {spatialMetrics && (
+        <CollapsibleSection
+          id="spatial-metrics"
+          title="Advanced Spatial & Geometry Metrics"
+          subtitle="Deterministic pitch calculations: convex hull, pitch control, pressing distance & compactness"
+          icon={<BarChart2 size={18} color="var(--color-tactical)" />}
+          summaryBadges={[
+            { label: `${spatialMetrics.compactness?.vertical_block_length_meters || 0}m Block Length`, variant: 'default' },
+            { label: `${spatialMetrics.passing_lanes?.length || 0} Passing Lanes Analyzed`, variant: 'tactical' },
+          ]}
+          defaultOpen={false}
+        >
+          <SpatialMetricsCard metrics={spatialMetrics} />
+        </CollapsibleSection>
       )}
 
-      {/* 9. Confidence and Limitations */}
+      {/* 9. AI Confidence and Analytic Limitations */}
       {confidence_and_limitations && (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <HelpCircle size={18} color="var(--text-secondary)" />
-              Confidence & Data Limitations
-            </CardTitle>
-            <Badge
-              variant={
-                confidence_and_limitations.confidence_level === 'High'
-                  ? 'pitch'
-                  : confidence_and_limitations.confidence_level === 'Medium'
-                    ? 'warning'
-                    : 'default'
-              }
-            >
-              {Math.round(confidence_and_limitations.confidence_score * 100)}% Confidence ({confidence_and_limitations.confidence_level})
-            </Badge>
-          </CardHeader>
-          <CardContent>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-              <div>
-                <strong>Data Sufficiency:</strong> {confidence_and_limitations.data_sufficiency}
-              </div>
-              {confidence_and_limitations.limitations?.length > 0 && (
-                <div>
-                  <strong style={{ color: 'var(--text-muted)' }}>Assumptions & Limitations:</strong>
-                  <ul style={{ margin: '4px 0 0 0', paddingLeft: '18px', lineHeight: 1.5 }}>
-                    {confidence_and_limitations.limitations.map((lim, i) => (
-                      <li key={i}>{lim}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+        <CollapsibleSection
+          id="confidence-limitations"
+          title="AI Confidence & Analytic Limitations"
+          subtitle="Evaluation of tracking sufficiency, predictive reliability, and domain constraints"
+          icon={<HelpCircle size={18} color="var(--text-secondary)" />}
+          summaryBadges={[
+            {
+              label: `${Math.round(confidence_and_limitations.confidence_score * 100)}% Confidence (${confidence_and_limitations.confidence_level})`,
+              variant: confidence_and_limitations.confidence_level === 'High' ? 'pitch' : 'warning',
+            },
+          ]}
+          defaultOpen={false}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+            <div>
+              <strong style={{ color: 'var(--text-primary)' }}>Data Sufficiency:</strong> {confidence_and_limitations.data_sufficiency}
             </div>
-          </CardContent>
-        </Card>
+            {confidence_and_limitations.limitations?.length > 0 && (
+              <div>
+                <strong style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Tactical Caveats &amp; Limitations:</strong>
+                <ul style={{ margin: 0, paddingLeft: '18px', lineHeight: 1.6 }}>
+                  {confidence_and_limitations.limitations.map((lim, i) => (
+                    <li key={i}>{lim}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </CollapsibleSection>
       )}
 
-      {/* 10. Supporting Tactical Knowledge Sources */}
+      {/* 10. Supporting Tactical Knowledge RAG Sources */}
       {supporting_sources && supporting_sources.length > 0 && (
-        <KnowledgeSourcesCard sources={supporting_sources} />
+        <CollapsibleSection
+          id="knowledge-sources"
+          title="Tactical Knowledge & Literature Sources"
+          subtitle="Theoretical literature, coaching principles, and vector RAG citations grounding this report"
+          icon={<BookOpen size={18} color="var(--color-pitch)" />}
+          summaryBadges={[
+            { label: `${supporting_sources.length} Literature Sources`, variant: 'pitch' },
+          ]}
+          defaultOpen={false}
+        >
+          <KnowledgeSourcesCard sources={supporting_sources} />
+        </CollapsibleSection>
       )}
     </div>
   )
 }
-

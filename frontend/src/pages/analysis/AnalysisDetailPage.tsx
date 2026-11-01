@@ -7,8 +7,10 @@ import {
   FileText,
   History,
   MessageSquare,
+  MousePointerClick,
   RefreshCw,
   ShieldCheck,
+  Sparkles,
   Zap,
 } from 'lucide-react'
 import {
@@ -21,16 +23,26 @@ import {
   EmptyState,
   LoadingSpinner,
 } from '../../components/common/index.ts'
-import { TacticalPitch } from '../../components/pitch/index.ts'
+import { PitchSelectionExplainer, TacticalPitch } from '../../components/pitch/index.ts'
 import { AnalysisReportView, FollowUpConversation } from '../../components/analysis/index.ts'
 import { useApiQuery } from '../../hooks/useApi.ts'
 import { analysisService } from '../../api/services/analysis.ts'
 import { scenarioService } from '../../api/services/scenarios.ts'
 import { saveRecentAnalysis } from '../../utils/recentAnalyses.ts'
+import type { Player } from '../../types/scenario.ts'
+import type { PassingLaneMetric } from '../../types/analysis.ts'
 
 export const AnalysisDetailPage: FC = () => {
   const { id } = useParams<{ id: string }>()
   const [activeTab, setActiveTab] = useState<'report' | 'discussion'>('report')
+
+  // Interactive Pitch Selection State
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
+  const [selectedTeam, setSelectedTeam] = useState<'attacking' | 'defending' | null>(null)
+  const [selectedLane, setSelectedLane] = useState<PassingLaneMetric | null>(null)
+  const [selectedLaneIndex, setSelectedLaneIndex] = useState<number | null>(null)
+  const [selectedTrap, setSelectedTrap] = useState(false)
+  const [selectedCompactness, setSelectedCompactness] = useState(false)
 
   // 1. Fetch Analysis Record
   const {
@@ -67,6 +79,51 @@ export const AnalysisDetailPage: FC = () => {
       })
     }
   }, [analysis])
+
+  const handleSelectPlayer = (player: Player, team: 'attacking' | 'defending') => {
+    setSelectedPlayer(player)
+    setSelectedTeam(team)
+    setSelectedLane(null)
+    setSelectedLaneIndex(null)
+    setSelectedTrap(false)
+    setSelectedCompactness(false)
+  }
+
+  const handleSelectLane = (lane: PassingLaneMetric, index: number) => {
+    setSelectedLane(lane)
+    setSelectedLaneIndex(index)
+    setSelectedPlayer(null)
+    setSelectedTeam(null)
+    setSelectedTrap(false)
+    setSelectedCompactness(false)
+  }
+
+  const handleSelectTrap = () => {
+    setSelectedTrap(true)
+    setSelectedPlayer(null)
+    setSelectedTeam(null)
+    setSelectedLane(null)
+    setSelectedLaneIndex(null)
+    setSelectedCompactness(false)
+  }
+
+  const handleSelectCompactness = () => {
+    setSelectedCompactness(true)
+    setSelectedPlayer(null)
+    setSelectedTeam(null)
+    setSelectedLane(null)
+    setSelectedLaneIndex(null)
+    setSelectedTrap(false)
+  }
+
+  const handleClearSelection = () => {
+    setSelectedPlayer(null)
+    setSelectedTeam(null)
+    setSelectedLane(null)
+    setSelectedLaneIndex(null)
+    setSelectedTrap(false)
+    setSelectedCompactness(false)
+  }
 
   if (loadingAnalysis) {
     return (
@@ -151,17 +208,61 @@ export const AnalysisDetailPage: FC = () => {
         </div>
       </div>
 
-      {/* Primary Pitch Visualizer with AI Tactical Layer Overlay */}
+      {/* 1. Plain-English Tactical Summary Hero Banner: Instant understanding for ordinary fans */}
+      {analysis.analysis?.situation_overview && (
+        <div
+          style={{
+            padding: '16px 20px',
+            borderRadius: 'var(--radius-lg)',
+            backgroundColor: 'var(--bg-surface)',
+            border: '1px solid var(--border-default)',
+            borderLeft: '4px solid var(--color-pitch)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Sparkles size={16} color="var(--color-pitch)" />
+              <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-pitch-light)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                Tactical Situation at a Glance
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Badge variant="tactical">
+                {analysis.analysis.situation_overview.match_phase?.replace(/_/g, ' ').toUpperCase() || 'IN POSSESSION'}
+              </Badge>
+              <Badge variant="default">
+                {analysis.analysis.situation_overview.tactical_situation}
+              </Badge>
+            </div>
+          </div>
+          <p style={{ margin: 0, fontSize: '0.9375rem', color: 'var(--text-primary)', lineHeight: 1.55 }}>
+            {analysis.analysis.situation_overview.summary}
+          </p>
+          {analysis.analysis.fan_watch_points?.tactical_takeaway && (
+            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+              <span style={{ color: 'var(--color-tactical-light)', fontWeight: 600 }}>Fan Takeaway:</span>
+              <em style={{ color: 'var(--text-primary)' }}>&ldquo;{analysis.analysis.fan_watch_points.tactical_takeaway}&rdquo;</em>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Primary Pitch Visualizer with Interactive Selection & Plain-English Explainer */}
       {scenario ? (
         <Card>
           <CardHeader>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                <Badge variant="pitch">Interactive Pitch</Badge>
-                <Badge variant="tactical">Tactical Overlay Active</Badge>
+                <Badge variant="pitch" icon={<MousePointerClick size={12} />}>
+                  Interactive Pitch
+                </Badge>
+                <Badge variant="tactical">Click to Inspect</Badge>
               </div>
               <CardTitle>
-                Spatial Relationships &amp; Pressing Direction
+                Tactical Pitch &amp; Spatial Movements
               </CardTitle>
             </div>
             <Link to={`/scenarios/${scenario.id}`}>
@@ -170,7 +271,7 @@ export const AnalysisDetailPage: FC = () => {
               </Button>
             </Link>
           </CardHeader>
-          <CardContent style={{ padding: '0 16px 16px 16px' }}>
+          <CardContent style={{ padding: '0 16px 16px 16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <TacticalPitch
               attackingTeam={scenario.attacking_team}
               defendingTeam={scenario.defending_team}
@@ -178,6 +279,28 @@ export const AnalysisDetailPage: FC = () => {
               spatialMetrics={analysis.spatial_metrics}
               showAnalysisOverlay={true}
               height="500px"
+              selectedPlayerId={selectedPlayer?.id}
+              onSelectPlayer={handleSelectPlayer}
+              selectedLaneIndex={selectedLaneIndex}
+              onSelectLane={handleSelectLane}
+              selectedTrap={selectedTrap}
+              onSelectTrap={handleSelectTrap}
+              selectedCompactness={selectedCompactness}
+              onSelectCompactness={handleSelectCompactness}
+            />
+
+            {/* Selection Explainer Below the Pitch */}
+            <PitchSelectionExplainer
+              selectedPlayer={selectedPlayer}
+              selectedTeam={selectedTeam}
+              attackingTeamName={scenario.attacking_team.name}
+              defendingTeamName={scenario.defending_team.name}
+              selectedLane={selectedLane}
+              selectedTrap={selectedTrap}
+              selectedCompactness={selectedCompactness}
+              spatialMetrics={analysis.spatial_metrics}
+              report={analysis.analysis}
+              onClearSelection={handleClearSelection}
             />
           </CardContent>
         </Card>
@@ -189,7 +312,7 @@ export const AnalysisDetailPage: FC = () => {
         </Card>
       ) : null}
 
-      {/* View Tabs: 10-Section Structured Report vs Contextual Discussion */}
+      {/* View Tabs: Tactical Breakdown Report vs AI Follow-up Discussion */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-default)', paddingBottom: '8px' }}>
         <button
           type="button"
@@ -206,7 +329,7 @@ export const AnalysisDetailPage: FC = () => {
           }}
         >
           <FileText size={16} />
-          <span>Full 10-Section Tactical Report</span>
+          <span>Fan Tactical Breakdown</span>
         </button>
 
         <button
@@ -224,7 +347,7 @@ export const AnalysisDetailPage: FC = () => {
           }}
         >
           <MessageSquare size={16} />
-          <span>Follow-Up Discussion ({analysis.messages?.length || 0})</span>
+          <span>Ask AI Follow-Up ({analysis.messages?.length || 0})</span>
         </button>
       </div>
 
