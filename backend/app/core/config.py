@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     # PostgreSQL Database URL
-    DATABASE_URL: str
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/presslens"
 
     # CORS configuration
     CORS_ORIGINS: Union[List[str], str] = [
@@ -34,6 +34,7 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "https://press-lens-one.vercel.app",
     ]
 
     # Groq LLM Configuration
@@ -48,20 +49,45 @@ class Settings(BaseSettings):
     RAG_TOP_K: int = 4
     RAG_MIN_SIMILARITY: float = 0.30
 
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def assemble_database_url(cls, v: str) -> str:
+        if isinstance(v, str):
+            clean = v.strip()
+            if clean.startswith("postgres://"):
+                return clean.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif clean.startswith("postgresql://") and not clean.startswith("postgresql+asyncpg://"):
+                return clean.replace("postgresql://", "postgresql+asyncpg://", 1)
+            return clean
+        return v
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
+        default_origins = [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "https://press-lens-one.vercel.app",
+        ]
         if isinstance(v, str):
-            if v.startswith("[") and v.endswith("]"):
+            clean = v.strip()
+            if clean == "*":
+                return ["*"]
+            if clean.startswith("[") and clean.endswith("]"):
                 import json
                 try:
-                    return json.loads(v)
+                    parsed = json.loads(clean)
+                    if isinstance(parsed, list):
+                        return list(dict.fromkeys(parsed + default_origins))
                 except Exception:
                     pass
-            return [i.strip() for i in v.split(",") if i.strip()]
+            parsed = [i.strip() for i in clean.split(",") if i.strip()]
+            return list(dict.fromkeys(parsed + default_origins))
         elif isinstance(v, list):
-            return v
-        return ["http://localhost:5173", "http://localhost:3000"]
+            return list(dict.fromkeys(v + default_origins))
+        return default_origins
 
     @property
     def sync_database_url(self) -> str:

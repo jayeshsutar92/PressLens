@@ -49,3 +49,16 @@ async def check_db_connection() -> bool:
         logger.error("Database connectivity check failed: %s", str(exc))
         return False
 
+
+async def check_schema_readiness() -> bool:
+    """Verifies that the required application tables exist."""
+    try:
+        async with engine.connect() as conn:
+            result = await conn.execute(text("SELECT to_regclass('public.scenarios')"))
+            table_ref = result.scalar()
+            return table_ref is not None
+    except Exception as exc:
+        logger.error("Schema readiness verification failed: %s", str(exc))
+        return False
+
+

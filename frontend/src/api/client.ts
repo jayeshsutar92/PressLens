@@ -27,8 +27,16 @@ export const getBaseUrl = (): string => {
   if (envUrl && envUrl.trim().length > 0) {
     return envUrl.trim().replace(/\/+$/, '')
   }
-  if (typeof window !== 'undefined' && window.location.hostname === '127.0.0.1') {
-    return 'http://127.0.0.1:8000/api/v1'
+  if (typeof window !== 'undefined') {
+    if (window.location.hostname === '127.0.0.1') {
+      return 'http://127.0.0.1:8000/api/v1'
+    }
+    if (window.location.hostname === 'localhost') {
+      return 'http://localhost:8000/api/v1'
+    }
+    // Deployed to custom domain or production without explicit env override:
+    // Route requests to relative /api/v1 path (supports reverse proxies & single-domain deployments)
+    return '/api/v1'
   }
   return DEFAULT_BASE_URL
 }
@@ -42,7 +50,9 @@ export class ApiClient {
 
   private buildUrl(path: string, params?: Record<string, string | number | boolean | undefined | null>): string {
     const cleanPath = path.startsWith('/') ? path : `/${path}`
-    const url = new URL(`${this.baseUrl}${cleanPath}`)
+    const fullTarget = `${this.baseUrl}${cleanPath}`
+    const baseOrigin = typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'http://localhost:8000'
+    const url = new URL(fullTarget, baseOrigin)
 
     if (params) {
       Object.entries(params).forEach(([key, val]) => {

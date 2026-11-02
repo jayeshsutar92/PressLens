@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import logger, setup_logging
 from app.db.session import async_session_maker, check_db_connection, engine
+from app.models import Base
 from app.services.seed_service import SeedService
 
 
@@ -20,12 +21,16 @@ async def lifespan(_: FastAPI):
     if db_ok:
         logger.info("PostgreSQL database connection established successfully.")
         try:
+            # Ensure tables exist (zero-manual setup on new cloud database instances)
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+
             async with async_session_maker() as session:
                 seed_res = await SeedService.seed_all_if_needed(session)
                 if seed_res["seeded_scenarios"] > 0 or seed_res["seeded_knowledge"] > 0:
                     logger.info("Auto-seeded demonstration data: %s", seed_res)
         except Exception as seed_err:
-            logger.warning("Auto-seeding encountered non-fatal error: %s", str(seed_err))
+            logger.warning("Database initialization encountered notice: %s", str(seed_err))
     else:
         logger.warning("PostgreSQL database connection could not be established during startup.")
 
@@ -55,7 +60,7 @@ origins = settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=("*" not in origins),
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -83,3 +88,12 @@ async def root():
             "openapi": f"{settings.API_V1_STR}/openapi.json",
         },
     }
+
+
+if __name__ == "__main__":
+    import os
+    import uvicorn
+
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=(settings.APP_ENV == "development"))
+
