@@ -2,6 +2,10 @@
 
 **PressLens** is an AI-powered tactical football analysis application that transforms match events, tracking data, and pressing dynamics into actionable tactical insights.
 
+### 🌐 Live Links
+- **Frontend:** [https://press-lens-one.vercel.app](https://press-lens-one.vercel.app)
+- **Backend:** [https://presslens.onrender.com](https://presslens.onrender.com) (API Docs: [https://presslens.onrender.com/docs](https://presslens.onrender.com/docs))
+
 ---
 
 ## Architecture Overview
